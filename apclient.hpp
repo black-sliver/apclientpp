@@ -109,6 +109,17 @@ public:
         bool found = false;
     };
 
+    struct Version {
+        int ma;
+        int mi;
+        int build;
+
+        friend void to_json(nlohmann::json& j, const Version& ver)
+        {
+            j = nlohmann::json{{"major", ver.ma}, {"minor", ver.mi}, {"build", ver.build}, {"class", "Version"}};
+        }
+    };
+
     void set_socket_connected_handler(std::function<void(void)> f)
     {
         _hOnSocketConnected = f;
@@ -309,7 +320,8 @@ public:
         return false;
     }
 
-    bool ConnectSlot(const std::string& name, const std::string& password="", int ver_ma=0, int ver_mi=2, int ver_build=0)
+    bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
+                     const std::list<std::string>& tags = {}, const Version& ver = {0,2,0})
     {
         if (_state < State::SOCKET_CONNECTED) return false;
         _slot = name;
@@ -320,8 +332,9 @@ public:
             {"uuid", _uuid},
             {"name", name},
             {"password", password},
-            {"version", {{"major", ver_ma}, {"minor", ver_mi}, {"build", ver_build}, {"class", "Version"}}},
-            {"tags", json::array()},
+            {"version", ver},
+            {"items_handling", items_handling},
+            {"tags", tags},
         }};
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
