@@ -14,6 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <string>
 #include <list>
 #include <set>
+#include <optional>
 #include <nlohmann/json.hpp>
 #include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
@@ -336,6 +337,19 @@ public:
             {"items_handling", items_handling},
             {"tags", tags},
         }};
+        debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+        _ws->send(packet.dump());
+        return true;
+    }
+
+    bool ConnectUpdate(std::optional<int> items_handling, std::optional<const std::list<std::string>> tags)
+    {
+        if (!items_handling && !tags) return false;
+        auto packet = json{{
+            {"cmd", "ConnectUpdate"},
+        }};
+        if (items_handling) packet["items_handling"] = items_handling.value();
+        if (tags) packet["tags"] = tags.value();
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
