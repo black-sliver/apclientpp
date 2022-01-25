@@ -14,9 +14,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <string>
 #include <list>
 #include <set>
-#if defined  __cpp_lib_optional
+#if __cplusplus == 201703L || (defined __has_include && __has_include(<optional>))
 #include <optional>
-#elif defined  __cpp_lib_experimental_optional
+#elif defined __has_include && __has_include(<experimental/optional>)
 #include <experimental/optional>
 #else
 #define NO_OPTIONAL
@@ -350,8 +350,16 @@ public:
         return true;
     }
 
-#ifndef NO_OPTIONAL
-    bool ConnectUpdate(std::optional<int> items_handling, std::optional<const std::list<std::string>> tags)
+#if defined __cpp_lib_optional || defined __cpp_lib_experimental_optional
+    #if defined __cpp_lib_optional
+    template<class T>
+    using optional = std::optional<T>;
+    #else
+    template<class T>
+    using optional = std::experimental::optional<T>;
+    #endif
+
+    bool ConnectUpdate(optional<int> items_handling, optional<const std::list<std::string>> tags)
     {
         if (!items_handling && !tags) return false;
         auto packet = json{{
