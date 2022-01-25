@@ -14,7 +14,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <string>
 #include <list>
 #include <set>
+#if defined  __cpp_lib_optional
 #include <optional>
+#elif defined  __cpp_lib_experimental_optional
+#include <experimental/optional>
+#else
+#define NO_OPTIONAL
+#endif
 #include <nlohmann/json.hpp>
 #include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
@@ -344,6 +350,7 @@ public:
         return true;
     }
 
+#ifndef NO_OPTIONAL
     bool ConnectUpdate(std::optional<int> items_handling, std::optional<const std::list<std::string>> tags)
     {
         if (!items_handling && !tags) return false;
@@ -356,6 +363,7 @@ public:
         _ws->send(packet.dump());
         return true;
     }
+#endif
 
     bool Sync()
     {
