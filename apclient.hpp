@@ -410,9 +410,9 @@ public:
             {"cmd", "Bounce"},
             {"data", data},
         }};
-        if (!games.empty()) packet["games"] = games;
-        if (!slots.empty()) packet["slots"] = slots;
-        if (!tags.empty()) packet["tags"] = tags;
+        if (!games.empty()) packet[0]["games"] = games;
+        if (!slots.empty()) packet[0]["slots"] = slots;
+        if (!tags.empty()) packet[0]["tags"] = tags;
 #ifdef APCLIENT_DEBUG
         const size_t maxDumpLen = 512;
         auto dump = packet[0].dump().substr(0, maxDumpLen);
@@ -667,7 +667,7 @@ private:
                     if (_hOnPrintJson) _hOnPrintJson(msg);
                 }
                 else if (cmd == "Bounced") {
-                    if (_hOnBounced) _hOnBounced(command["data"]);
+                    if (_hOnBounced) _hOnBounced(command);
                 }
                 else {
                     debug("unhandled cmd");
