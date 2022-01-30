@@ -455,6 +455,11 @@ public:
         return _slot;
     }
 
+    int get_player_number() const
+    {
+        return _slotnr;
+    }
+
     bool is_data_package_valid() const
     {
         // returns true if cached texts are valid
