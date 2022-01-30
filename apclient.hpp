@@ -190,6 +190,11 @@ public:
         _hOnBounced = f;
     }
 
+    void set_location_checked_handler(std::function<void(const std::list<int>&)> f)
+    {
+        _hOnLocationChecked = f;
+    }
+
     void set_data_package(const json& data)
     {
         // only apply from cache if not updated and it looks valid
@@ -616,6 +621,15 @@ private:
                             player["name"].get<std::string>(),
                         });
                     }
+                    // TODO: store checked/missing locations
+                    if (_hOnLocationChecked) {
+                        std::list<int> checkedLocations;
+                        for (auto& location: command["checked_locations"]) {
+                            checkedLocations.push_back(location.get<int>());
+                        }
+                        if (!checkedLocations.empty())
+                            _hOnLocationChecked(checkedLocations);
+                    }
                 }
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
@@ -642,7 +656,15 @@ private:
                     if (_hOnLocationInfo) _hOnLocationInfo(items);
                 }
                 else if (cmd == "RoomUpdate") {
-                    // ignored at the moment
+                    // TODO: store checked/missing locations
+                    if (_hOnLocationChecked) {
+                        std::list<int> checkedLocations;
+                        for (auto& location: command["checked_locations"]) {
+                            checkedLocations.push_back(location.get<int>());
+                        }
+                        if (!checkedLocations.empty())
+                            _hOnLocationChecked(checkedLocations);
+                    }
                 }
                 else if (cmd == "DataPackage") {
                     auto data = _dataPackage;
@@ -761,6 +783,7 @@ private:
     std::function<void(const std::string&)> _hOnPrint = nullptr;
     std::function<void(const std::list<TextNode>&)> _hOnPrintJson = nullptr;
     std::function<void(const json&)> _hOnBounced = nullptr;
+    std::function<void(const std::list<int>&)> _hOnLocationChecked = nullptr;
 
     unsigned long _lastSocketConnect;
     unsigned long _socketReconnectInterval = 1500;
