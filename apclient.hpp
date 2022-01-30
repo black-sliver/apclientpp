@@ -457,6 +457,13 @@ public:
         return _dataPackageValid;
     }
 
+    double get_server_time() const
+    {
+        auto td = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - _localConnectTime);
+        return _serverConnectTime + td.count();
+    }
+
     void poll()
     {
         if (_ws) _ws->poll();
@@ -552,6 +559,8 @@ private:
 #endif
                 // TODO: validate command schema to get a useful error message
                 if (cmd == "RoomInfo") {
+                    _localConnectTime = std::chrono::steady_clock::now();
+                    _serverConnectTime = command["time"].get<double>();
                     _seed = command["seed_name"];
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
@@ -767,6 +776,8 @@ private:
     std::map<int, std::string> _items;
     bool _dataPackageValid = false;
     json _dataPackage;
+    double _serverConnectTime = 0;
+    std::chrono::steady_clock::time_point _localConnectTime;
 
     const json _packetSchemaJson = R"({
         "type": "array",
