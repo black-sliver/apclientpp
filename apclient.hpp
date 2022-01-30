@@ -26,6 +26,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
+#include <chrono>
 
 
 //#define APCLIENT_DEBUG // to get debug output
@@ -361,17 +362,22 @@ public:
 
     bool ConnectUpdate(optional<int> items_handling, optional<const std::list<std::string>> tags)
     {
-        if (!items_handling && !tags) return false;
+        return ConnectUpdate((bool)items_handling, items_handling.value(), (bool)tags, tags.value());
+    }
+#endif
+
+    bool ConnectUpdate(bool send_items_handling, int items_handling, bool send_tags, const std::list<std::string>& tags)
+    {
+        if (!send_items_handling && !send_tags) return false;
         auto packet = json{{
             {"cmd", "ConnectUpdate"},
         }};
-        if (items_handling) packet["items_handling"] = items_handling.value();
-        if (tags) packet["tags"] = tags.value();
+        if (send_items_handling) packet[0]["items_handling"] = items_handling;
+        if (send_tags) packet[0]["tags"] = tags;
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
     }
-#endif
 
     bool Sync()
     {
