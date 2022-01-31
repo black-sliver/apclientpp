@@ -476,6 +476,10 @@ public:
 
     void poll()
     {
+        if (_ws && _state == State::DISCONNECTED) {
+            delete _ws;
+            _ws = nullptr;
+        }
         if (_ws) _ws->poll();
         if (_state < State::SOCKET_CONNECTED) {
             auto t = now();
@@ -544,8 +548,6 @@ private:
             if (_hOnSocketDisconnected) _hOnSocketDisconnected();
         }
         _state = State::DISCONNECTED;
-        delete _ws;
-        _ws = nullptr;
         _seed = "";
     }
 
