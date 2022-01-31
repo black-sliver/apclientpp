@@ -367,7 +367,7 @@ public:
 
     bool ConnectUpdate(optional<int> items_handling, optional<const std::list<std::string>> tags)
     {
-        return ConnectUpdate((bool)items_handling, items_handling.value(), (bool)tags, tags.value());
+        return ConnectUpdate((bool)items_handling, *items_handling, (bool)tags, *tags);
     }
 #endif
 
