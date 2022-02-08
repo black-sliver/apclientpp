@@ -27,6 +27,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
 #include <chrono>
+#include <stdint.h>
+#include <inttypes.h>
 
 
 //#define APCLIENT_DEBUG // to get debug output
@@ -37,6 +39,9 @@ protected:
     typedef nlohmann::json json;
     typedef valijson::adapters::NlohmannJsonAdapter JsonSchemaAdapter;
     typedef wswrap::WS WS;
+    static int64_t stoi64(const std::string& s) {
+        return std::stoll(s);
+    }
 
 public:
     APClient(const std::string& uuid, const std::string& game, const std::string& uri="ws://localhost:38281")
@@ -99,8 +104,8 @@ public:
     };
 
     struct NetworkItem {
-        int item;
-        int location;
+        int64_t item;
+        int64_t location;
         int player;
         int index = -1; // to sync items, not actually part of NetworkItem
     };
@@ -190,7 +195,7 @@ public:
         _hOnBounced = f;
     }
 
-    void set_location_checked_handler(std::function<void(const std::list<int>&)> f)
+    void set_location_checked_handler(std::function<void(const std::list<int64_t>&)> f)
     {
         _hOnLocationChecked = f;
     }
@@ -204,10 +209,10 @@ public:
                 const auto& gamedata = gamepair.value();
                 _dataPackage["games"][gamepair.key()] = gamedata;
                 for (auto pair: gamedata["item_name_to_id"].items()) {
-                    _items[pair.value().get<int>()] = pair.key();
+                    _items[pair.value().get<int64_t>()] = pair.key();
                 }
                 for (auto pair: gamedata["location_name_to_id"].items()) {
-                    _locations[pair.value().get<int>()] = pair.key();
+                    _locations[pair.value().get<int64_t>()] = pair.key();
                 }
             }
         }
@@ -224,14 +229,14 @@ public:
         return "Unknown";
     }
 
-    std::string get_location_name(int code)
+    std::string get_location_name(int64_t code)
     {
         auto it = _locations.find(code);
         if (it != _locations.end()) return it->second;
         return "Unknown";
     }
 
-    std::string get_item_name(int code)
+    std::string get_item_name(int64_t code)
     {
         auto it = _items.find(code);
         if (it != _items.end()) return it->second;
@@ -255,12 +260,12 @@ public:
                 else if (color.empty()) color = "yellow";
                 text = get_player_alias(id);
             } else if (node.type == "item_id") {
-                int id = std::stoi(node.text);
+                int64_t id = stoi64(node.text);
                 if (color.empty() && node.found) color = "green";
                 else if (color.empty()) color = "cyan";
                 text = get_item_name(id);
             } else if (node.type == "location_id") {
-                int id = std::stoi(node.text);
+                int64_t id = stoi64(node.text);
                 if (color.empty()) color = "blue";
                 text = get_location_name(id);
             } else {
@@ -285,7 +290,7 @@ public:
         return out;
     }
 
-    bool LocationChecks(std::list<int> locations)
+    bool LocationChecks(std::list<int64_t> locations)
     {
         // returns true if checks were sent or queued
         if (_state == State::SLOT_CONNECTED) {
@@ -302,7 +307,7 @@ public:
         return true;
     }
 
-    bool LocationScouts(std::list<int> locations)
+    bool LocationScouts(std::list<int64_t> locations)
     {
         // returns true if scouts were sent or queued
         if (_state == State::SLOT_CONNECTED) {
@@ -630,9 +635,9 @@ private:
                     }
                     // TODO: store checked/missing locations
                     if (_hOnLocationChecked) {
-                        std::list<int> checkedLocations;
+                        std::list<int64_t> checkedLocations;
                         for (auto& location: command["checked_locations"]) {
-                            checkedLocations.push_back(location.get<int>());
+                            checkedLocations.push_back(location.get<int64_t>());
                         }
                         if (!checkedLocations.empty())
                             _hOnLocationChecked(checkedLocations);
@@ -643,8 +648,8 @@ private:
                     int index = command["index"].get<int>();
                     for (const auto& item: command["items"]) {
                         items.push_back({
-                            item["item"].get<int>(),
-                            item["location"].get<int>(),
+                            item["item"].get<int64_t>(),
+                            item["location"].get<int64_t>(),
                             item["player"].get<int>(),
                             index++,
                         });
@@ -655,8 +660,8 @@ private:
                     std::list<NetworkItem> items;
                     for (const auto& item: command["locations"]) {
                         items.push_back({
-                            item["item"].get<int>(),
-                            item["location"].get<int>(),
+                            item["item"].get<int64_t>(),
+                            item["location"].get<int64_t>(),
                             item["player"].get<int>(),
                         });
                     }
@@ -665,9 +670,9 @@ private:
                 else if (cmd == "RoomUpdate") {
                     // TODO: store checked/missing locations
                     if (_hOnLocationChecked) {
-                        std::list<int> checkedLocations;
+                        std::list<int64_t> checkedLocations;
                         for (auto& location: command["checked_locations"]) {
-                            checkedLocations.push_back(location.get<int>());
+                            checkedLocations.push_back(location.get<int64_t>());
                         }
                         if (!checkedLocations.empty())
                             _hOnLocationChecked(checkedLocations);
@@ -790,20 +795,20 @@ private:
     std::function<void(const std::string&)> _hOnPrint = nullptr;
     std::function<void(const std::list<TextNode>&)> _hOnPrintJson = nullptr;
     std::function<void(const json&)> _hOnBounced = nullptr;
-    std::function<void(const std::list<int>&)> _hOnLocationChecked = nullptr;
+    std::function<void(const std::list<int64_t>&)> _hOnLocationChecked = nullptr;
 
     unsigned long _lastSocketConnect;
     unsigned long _socketReconnectInterval = 1500;
-    std::set<int> _checkQueue;
-    std::set<int> _scoutQueue;
+    std::set<int64_t> _checkQueue;
+    std::set<int64_t> _scoutQueue;
     ClientStatus _clientStatus = ClientStatus::UNKNOWN;
     std::string _seed;
     std::string _slot; // currently connected slot, if any
     int _team = -1;
     int _slotnr = -1;
     std::list<NetworkPlayer> _players;
-    std::map<int, std::string> _locations;
-    std::map<int, std::string> _items;
+    std::map<int64_t, std::string> _locations;
+    std::map<int64_t, std::string> _items;
     bool _dataPackageValid = false;
     json _dataPackage;
     double _serverConnectTime = 0;
