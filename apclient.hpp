@@ -785,7 +785,7 @@ private:
 
     std::function<void(void)> _hOnSocketConnected = nullptr;
     std::function<void(void)> _hOnSocketDisconnected = nullptr;
-    std::function<void(void)> _hOnSlotConnected = nullptr;
+    std::function<void(const json&)> _hOnSlotConnected = nullptr;
     std::function<void(void)> _hOnSlotDisconnected = nullptr;
     std::function<void(const std::list<std::string>&)> _hOnSlotRefused = nullptr;
     std::function<void(void)> _hOnRoomInfo = nullptr;
