@@ -145,7 +145,7 @@ public:
         _hOnSocketDisconnected = f;
     }
 
-    void set_slot_connected_handler(std::function<void(void)> f)
+    void set_slot_connected_handler(std::function<void(const json&)> f)
     {
         _hOnSlotConnected = f;
     }
@@ -621,7 +621,6 @@ private:
                 }
                 else if (cmd == "Connected") {
                     _state = State::SLOT_CONNECTED;
-                    if (_hOnSlotConnected) _hOnSlotConnected();
                     _team = command["team"];
                     _slotnr = command["slot"];
                     _players.clear();
@@ -642,6 +641,7 @@ private:
                         if (!checkedLocations.empty())
                             _hOnLocationChecked(checkedLocations);
                     }
+                    if (_hOnSlotConnected) _hOnSlotConnected(command["slot_data"]);
                 }
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
@@ -785,7 +785,7 @@ private:
 
     std::function<void(void)> _hOnSocketConnected = nullptr;
     std::function<void(void)> _hOnSocketDisconnected = nullptr;
-    std::function<void(void)> _hOnSlotConnected = nullptr;
+    std::function<void(const json&)> _hOnSlotConnected = nullptr;
     std::function<void(void)> _hOnSlotDisconnected = nullptr;
     std::function<void(const std::list<std::string>&)> _hOnSlotRefused = nullptr;
     std::function<void(void)> _hOnRoomInfo = nullptr;
