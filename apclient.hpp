@@ -632,6 +632,7 @@ private:
                             player["name"].get<std::string>(),
                         });
                     }
+                    if (_hOnSlotConnected) _hOnSlotConnected(command["slot_data"]);
                     // TODO: store checked/missing locations
                     if (_hOnLocationChecked) {
                         std::list<int64_t> checkedLocations;
@@ -641,7 +642,6 @@ private:
                         if (!checkedLocations.empty())
                             _hOnLocationChecked(checkedLocations);
                     }
-                    if (_hOnSlotConnected) _hOnSlotConnected(command["slot_data"]);
                 }
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
