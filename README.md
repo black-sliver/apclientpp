@@ -15,7 +15,7 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
 * instantiate APClient and use its API
 * see [ap-soeclient](https://github.com/black-sliver/ap-soeclient) for an example
 
-# When using Visual Studio for building
+## When using Visual Studio for building
 * follow steps mentioned above
 * Set up Additional Include Directories for the dependencies
   * project properties -> C/C++ -> General -> Additional Include Directories
