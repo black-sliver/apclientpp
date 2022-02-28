@@ -26,7 +26,7 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
     * Add subprojects\valijson\include 
 * Add /Zc:__cplusplus to the command line
   * project properties -> C/C++ -> Command Line -> Additional Options
-* Add _WIN32_WINNT#0x0A00 to Preprocessor Definitions
+* Add _WIN32_WINNT=0x0600 (or higher) to Preprocessor Definitions
   * project properties -> C/C++ -> Preprocessor -> Preprocessor Definitions
 * If your code includes <windows.h>, you must also define the WIN32_LEAN_AND_MEAN preprocessor
   * project properties -> C/C++ -> Preprocessor -> Preprocessor Definitions
