@@ -770,11 +770,15 @@ private:
 
     static unsigned long now()
     {
+#if defined WIN32 || defined _WIN32
+        return (unsigned long)GetTickCount();
+#else
         struct timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
         unsigned long ms = (unsigned long)ts.tv_sec * 1000;
         ms += (unsigned long)ts.tv_nsec / 1000000;
         return ms;
+#endif
     }
 
     std::string _uri;
