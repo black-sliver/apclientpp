@@ -118,10 +118,18 @@ public:
     };
 
     struct TextNode {
+        enum Flags {
+            FLAG_NONE = 0,
+            FLAG_ADVANCEMENT = 1,
+            FLAG_NEVER_EXCLUDE = 2,
+            FLAG_TRAP = 4,
+        };
+
         std::string type;
         std::string color;
         std::string text;
         bool found = false;
+        unsigned flags = FLAG_NONE;
     };
 
     struct Version {
@@ -261,8 +269,13 @@ public:
                 text = get_player_alias(id);
             } else if (node.type == "item_id") {
                 int64_t id = stoi64(node.text);
-                if (color.empty() && node.found) color = "green";
-                else if (color.empty()) color = "cyan";
+                if (color.empty()) {
+                    if (node.found) color = "green";
+                    else if (node.flags & TextNode::FLAG_ADVANCEMENT) color = "plum";
+                    else if (node.flags & TextNode::FLAG_NEVER_EXCLUDE) color = "slateblue";
+                    else if (node.flags & TextNode::FLAG_TRAP) color = "salmon";
+                    else color = "cyan";
+                }
                 text = get_item_name(id);
             } else if (node.type == "location_id") {
                 int64_t id = stoi64(node.text);
@@ -700,11 +713,13 @@ private:
                         auto itColor = part.find("color");
                         auto itText = part.find("text");
                         auto itFound = part.find("found");
+                        auto itFlags = part.find("flags");
                         msg.push_back({
                             itType == part.end() ? "" : itType->get<std::string>(),
                             itColor == part.end() ? "" : itColor->get<std::string>(),
                             itText == part.end() ? "" : itText->get<std::string>(),
                             itFound == part.end() ? false : itFound->get<bool>(),
+                            itFlags == part.end() ? 0U : itFlags->get<unsigned>(),
                         });
                     }
                     if (_hOnPrintJson) _hOnPrintJson(msg);
@@ -759,6 +774,9 @@ private:
         if (color == "blue") return "\x1b[34m";
         if (color == "magenta") return "\x1b[35m";
         if (color == "cyan") return "\x1b[36m";
+        if (color == "plum") return "\x1b[38:5:219m";
+        if (color == "slateblue") return "\x1b[38:5:62m";
+        if (color == "salmon") return "\x1b[38:5:210m";
         return "\x1b[0m";
     }
 
