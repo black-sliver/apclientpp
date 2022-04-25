@@ -193,7 +193,7 @@ public:
         _hOnPrint = f;
     }
 
-    void set_print_json_handler(std::function<void(const std::list<TextNode>&)> f)
+    void set_print_json_handler(std::function<void(const std::list<TextNode>&, const NetworkItem&)> f)
     {
         _hOnPrintJson = f;
     }
@@ -707,6 +707,16 @@ private:
                     if (_hOnPrint) _hOnPrint(command["text"].get<std::string>());
                 }
                 else if (cmd == "PrintJSON") {
+                    NetworkItem item;
+                    if (command.contains("type") && command["type"] == "ItemSend") {
+                       item = {
+                            command["item"]["item"].get<int64_t>(),
+                            command["item"]["location"].get<int64_t>(),
+                            command["item"]["player"].get<int>(),
+                            0,
+                       };
+                    }
+
                     std::list<TextNode> msg;
                     for (const auto& part: command["data"]) {
                         auto itType = part.find("type");
@@ -722,7 +732,8 @@ private:
                             itFlags == part.end() ? 0U : itFlags->get<unsigned>(),
                         });
                     }
-                    if (_hOnPrintJson) _hOnPrintJson(msg);
+
+                    if (_hOnPrintJson) _hOnPrintJson(msg, item);
                 }
                 else if (cmd == "Bounced") {
                     if (_hOnBounced) _hOnBounced(command);
@@ -815,7 +826,7 @@ private:
     std::function<void(const std::list<NetworkItem>&)> _hOnLocationInfo = nullptr;
     std::function<void(const json&)> _hOnDataPackageChanged = nullptr;
     std::function<void(const std::string&)> _hOnPrint = nullptr;
-    std::function<void(const std::list<TextNode>&)> _hOnPrintJson = nullptr;
+    std::function<void(const std::list<TextNode>&, NetworkItem&)> _hOnPrintJson = nullptr;
     std::function<void(const json&)> _hOnBounced = nullptr;
     std::function<void(const std::list<int64_t>&)> _hOnLocationChecked = nullptr;
 
