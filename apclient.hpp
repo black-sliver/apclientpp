@@ -711,22 +711,24 @@ private:
                     if (_hOnPrint) _hOnPrint(command["text"].get<std::string>());
                 }
                 else if (cmd == "PrintJSON") {
-                    NetworkItem* item = nullptr;
+                    NetworkItem* pItem = nullptr;
+                    NetworkItem item;
                     if (command.contains("item")) {
-                       NetworkItem networkItem = {
+                        item = {
                            command["item"]["item"].get<int64_t>(),
                            command["item"]["location"].get<int64_t>(),
                            command["item"]["player"].get<int>(),
                            command["item"]["flags"].get<unsigned>(),
                            -1
-                       };
-                       item = &networkItem;
+                        };
+                        pItem = &item;
                     }
 
-                    int* reciever = nullptr;
+                    int* pReciever = nullptr;
+                    int reciever;
                     if (command.contains("receiving")) {
-                       int receiving = command["receiving"];
-                       reciever = &receiving;
+                       int reciever = command["receiving"];
+                       pReciever = &reciever;
                     }
 
                     std::list<TextNode> msg;
@@ -744,7 +746,7 @@ private:
                             itFlags == part.end() ? 0U : itFlags->get<unsigned>(),
                         });
                     }
-                    if (_hOnPrintJson) _hOnPrintJson(msg, item, reciever);
+                    if (_hOnPrintJson) _hOnPrintJson(msg, pItem, pReciever);
                 }
                 else if (cmd == "Bounced") {
                     if (_hOnBounced) _hOnBounced(command);
