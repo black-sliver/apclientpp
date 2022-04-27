@@ -199,6 +199,11 @@ public:
         _hOnPrintJson = f;
     }
 
+    void set_print_json_handler(std::function<void(const std::list<TextNode>&)> f)
+    {
+        _hOnPrintJson = std::bind(f, std::placeholders::_1);
+    }
+
     void set_bounced_handler(std::function<void(const json&)> f)
     {
         _hOnBounced = f;
