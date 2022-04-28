@@ -670,7 +670,7 @@ private:
                             item["item"].get<int64_t>(),
                             item["location"].get<int64_t>(),
                             item["player"].get<int>(),
-                            item["flags"].get<unsigned>(),
+                            item.value("flags", 0U),
                             index++,
                         });
                     }
@@ -683,7 +683,7 @@ private:
                             item["item"].get<int64_t>(),
                             item["location"].get<int64_t>(),
                             item["player"].get<int>(),
-                            item["flags"].get<unsigned>(),
+                            item.value("flags", 0U),
                             -1
                         });
                     }
@@ -723,7 +723,7 @@ private:
                            command["item"]["item"].get<int64_t>(),
                            command["item"]["location"].get<int64_t>(),
                            command["item"]["player"].get<int>(),
-                           command["item"]["flags"].get<unsigned>(),
+                           command["item"].value("flags", 0U),
                            -1
                         };
                         pItem = &item;
@@ -738,17 +738,12 @@ private:
 
                     std::list<TextNode> msg;
                     for (const auto& part: command["data"]) {
-                        auto itType = part.find("type");
-                        auto itColor = part.find("color");
-                        auto itText = part.find("text");
-                        auto itFound = part.find("found");
-                        auto itFlags = part.find("flags");
                         msg.push_back({
-                            itType == part.end() ? "" : itType->get<std::string>(),
-                            itColor == part.end() ? "" : itColor->get<std::string>(),
-                            itText == part.end() ? "" : itText->get<std::string>(),
-                            itFound == part.end() ? false : itFound->get<bool>(),
-                            itFlags == part.end() ? 0U : itFlags->get<unsigned>(),
+                            part.value("type", ""),
+                            part.value("color", ""),
+                            part.value("text", ""),
+                            part.value<bool>("found", false),
+                            part.value("flags", 0U),
                         });
                     }
                     if (_hOnPrintJson) _hOnPrintJson(msg, pItem, pReciever);
