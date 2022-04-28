@@ -732,7 +732,7 @@ private:
                     int* pReciever = nullptr;
                     int reciever;
                     if (command.contains("receiving")) {
-                       int reciever = command["receiving"];
+                       reciever = command["receiving"];
                        pReciever = &reciever;
                     }
 
