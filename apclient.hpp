@@ -605,7 +605,17 @@ private:
                     // we are nice and check and query individual games
                     _dataPackageValid = true;
                     std::list<std::string> exclude;
+                    std::set<std::string> playedGames;
+                    auto itGames = command.find("games");
+                    if (itGames != command.end() && itGames->is_array()) {
+                        playedGames = itGames->get<std::set<std::string>>();
+                    }
                     for (auto itV: command["datapackage_versions"].items()) {
+                        if (!playedGames.empty() && !playedGames.count(itV.key()) && itV.key() != "Archipelago") {
+                            // game exists but is not being played
+                            exclude.push_back(itV.key());
+                            continue;
+                        }
                         if (!itV.value().is_number()) continue;
                         int v = itV.value().get<int>();
                         if (v < 1) {
