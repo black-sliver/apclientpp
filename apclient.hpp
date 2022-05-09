@@ -29,6 +29,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <chrono>
 #include <stdint.h>
 #include <inttypes.h>
+#include <stdio.h>
 
 
 //#define APCLIENT_DEBUG // to get debug output
@@ -230,6 +231,42 @@ public:
                 }
             }
         }
+    }
+
+    bool set_data_package_from_file(const std::string& path)
+    {
+        FILE* f = fopen(path.c_str(), "rb");
+        if (!f) return false;
+        char* buf = nullptr;
+        size_t len = (size_t)0;
+        if ((0 == fseek(f, 0, SEEK_END)) &&
+            ((len = ftell(f)) > 0) &&
+            ((buf = (char*)malloc(len+1))) &&
+            (0 == fseek(f, 0, SEEK_SET)) &&
+            (len == fread(buf, 1, len, f)))
+        {
+            buf[len] = 0;
+            try {
+                set_data_package(json::parse(buf));
+            } catch (std::exception) {
+                free(buf);
+                fclose(f);
+                throw;
+            }
+        }
+        free(buf);
+        fclose(f);
+        return true;
+    }
+
+    bool save_data_package(const std::string& path)
+    {
+        FILE* f = fopen(path.c_str(), "wb");
+        if (!f) return false;
+        std::string s = _dataPackage.dump();
+        fwrite(s.c_str(), 1, s.length(), f);
+        fclose(f);
+        return true;
     }
 
     std::string get_player_alias(int slot)
