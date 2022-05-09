@@ -10,9 +10,16 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
   * [black-sliver/wswrap](https://github.com/black-sliver/wswrap)
   * for desktop: [zaphoyd/websocketpp](https://github.com/zaphoyd/websocketpp)
   * for desktop: asio (and define ASIO_STANDALONE) or boost:asio
-* add wswrap/src/wswrap.cpp as source file
+* add wswrap/src/wswrap.cpp as source file (everything else are headers/includes)
 * include apclient.hpp
 * instantiate APClient and use its API
+  * use `set_data_package` and `set_data_package_changed_handler` to load and save data package
+  * use `set_*_handler` to set event callbacks
+  * use `ConnectSlot` to connect to a slot after RoomInfo
+  * use `StatusUpdate`, `LocationChecks` and `LocationScouts` to send status, checks and scouts
+  * use `Say` to send a (chat) message
+  * use `Bounce` to send a bounce (deathlink, ...)
+  * call `poll` repeatedly (e.g. once per frame) for callbacks to fire
 * see [ap-soeclient](https://github.com/black-sliver/ap-soeclient) for an example
 
 ## When using Visual Studio for building
