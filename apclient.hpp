@@ -143,6 +143,25 @@ public:
         {
             j = nlohmann::json{{"major", ver.ma}, {"minor", ver.mi}, {"build", ver.build}, {"class", "Version"}};
         }
+
+        static Version from_json(const nlohmann::json& j) {
+            return {
+                j.value("major", 0),
+                j.value("minor", 0),
+                j.value("build", 0)
+            };
+        }
+
+        constexpr bool operator<(const Version& other)
+        {
+            return (ma<other.ma) || (ma==other.ma && mi<other.mi) ||
+                   (ma==other.ma && mi==other.mi && build<other.build);
+        }
+
+        constexpr bool operator>=(const Version& other)
+        {
+            return !(*this<other);
+        }
     };
 
     void set_socket_connected_handler(std::function<void(void)> f)
@@ -456,18 +475,25 @@ public:
         return true;
     }
 
-    bool GetDataPackage(const std::list<std::string>& exclude = {})
+    bool GetDataPackage(const std::list<std::string>& exclude = {}, const std::list<std::string>& include = {})
     {
         if (_state < State::ROOM_INFO) return false;
         auto packet = json{{
             {"cmd", "GetDataPackage"},
-            {"exclusions", exclude},
         }};
+        if (_serverVersion >= Version{0,3,2}) {
+            if (!include.empty()) packet[0]["games"] = include; // new since 0.3.2
+        }
+        if (_serverVersion >= Version{0,3,3}) {
+            // TODO: change 'if' to 'else' once 0.3.2 is final/released
+            if (!exclude.empty()) packet[0]["exclusions"] = exclude; // backward compatibility; deprecated in 0.3.2
+        }
+        // TODO: drop support for "exclusions" 2023
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
     }
-    
+
     bool Bounce(const json& data, std::list<std::string> games = {},
                 std::list<int> slots = {}, std::list<std::string> tags = {})
     {
@@ -634,6 +660,7 @@ private:
                 if (cmd == "RoomInfo") {
                     _localConnectTime = std::chrono::steady_clock::now();
                     _serverConnectTime = command["time"].get<double>();
+                    _serverVersion = Version::from_json(command["version"]);
                     _seed = command["seed_name"];
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
@@ -642,6 +669,7 @@ private:
                     // we are nice and check and query individual games
                     _dataPackageValid = true;
                     std::list<std::string> exclude;
+                    std::list<std::string> include;
                     std::set<std::string> playedGames;
                     auto itGames = command.find("games");
                     if (itGames != command.end() && itGames->is_array()) {
@@ -658,23 +686,26 @@ private:
                         if (v < 1) {
                             // 0 means don't cache
                             _dataPackageValid = false;
+                            include.push_back(itV.key());
                             continue;
                         }
                         auto itDp = _dataPackage["games"].find(itV.key());
                         if (itDp == _dataPackage["games"].end()) {
                             // new game
                             _dataPackageValid = false;
+                            include.push_back(itV.key());
                             continue;
                         }
                         if ((*itDp)["version"] != v) {
                             // different version
                             _dataPackageValid = false;
+                            include.push_back(itV.key());
                             continue;
                         }
                         // ok, cache valid
                         exclude.push_back(itV.key());
                     }
-                    if (!_dataPackageValid) GetDataPackage(exclude);
+                    if (!_dataPackageValid) GetDataPackage(exclude, include);
                     else debug("DataPackage up to date");
                 }
                 else if (cmd == "ConnectionRefused") {
@@ -906,6 +937,7 @@ private:
     json _dataPackage;
     double _serverConnectTime = 0;
     std::chrono::steady_clock::time_point _localConnectTime;
+    Version _serverVersion = {0,0,0};
 
     const json _packetSchemaJson = R"({
         "type": "array",
