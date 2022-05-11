@@ -10,6 +10,8 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
   * [black-sliver/wswrap](https://github.com/black-sliver/wswrap)
   * for desktop: [zaphoyd/websocketpp](https://github.com/zaphoyd/websocketpp)
   * for desktop: asio (and define ASIO_STANDALONE) or boost:asio
+  * not all websocketpp versions are compatible to all asio versions
+    * [try those](https://github.com/black-sliver/ap-soeclient/tree/master/subprojects) (download repo as zip and extract)
 * add wswrap/src/wswrap.cpp as source file (everything else are headers/includes)
 * include apclient.hpp
 * instantiate APClient and use its API
