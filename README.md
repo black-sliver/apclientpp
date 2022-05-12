@@ -23,6 +23,7 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
 * add wswrap/src/wswrap.cpp as source file (everything else are headers/includes)
 * include apclient.hpp
 * instantiate APClient and use its API
+  * you can use `ap_get_uuid` from `apuuid.hpp` helper to generate a UUID
   * use `set_data_package` and `set_data_package_changed_handler` to load and save data package
   * use `set_*_handler` to set event callbacks
   * call `poll` repeatedly (e.g. once per frame) for it to connect and callbacks to fire
