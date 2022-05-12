@@ -17,11 +17,11 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
 * instantiate APClient and use its API
   * use `set_data_package` and `set_data_package_changed_handler` to load and save data package
   * use `set_*_handler` to set event callbacks
+  * call `poll` repeatedly (e.g. once per frame) for it to connect and callbacks to fire
   * use `ConnectSlot` to connect to a slot after RoomInfo
   * use `StatusUpdate`, `LocationChecks` and `LocationScouts` to send status, checks and scouts
   * use `Say` to send a (chat) message
   * use `Bounce` to send a bounce (deathlink, ...)
-  * call `poll` repeatedly (e.g. once per frame) for callbacks to fire
 * see [ap-soeclient](https://github.com/black-sliver/ap-soeclient) for an example
 
 ## When using Visual Studio for building
