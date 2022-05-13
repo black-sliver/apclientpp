@@ -306,11 +306,31 @@ public:
         return "Unknown";
     }
 
+    /*Usage is not recomended*/
+    int64_t get_location_id(std::string name)
+    {
+        for (auto it : _locations)
+        {
+            if (it.second == name) return it.first;
+        }
+        return -1;
+    }
+
     std::string get_item_name(int64_t code)
     {
         auto it = _items.find(code);
         if (it != _items.end()) return it->second;
         return "Unknown";
+    }
+
+    /*Usage is not recomended*/
+    int64_t get_item_id(std::string name)
+    {
+        for (auto it : _items)
+        {
+            if (it.second == name) return it.first;
+        }
+        return -1;
     }
 
     std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt=RenderFormat::TEXT)
