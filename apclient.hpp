@@ -485,8 +485,7 @@ public:
         if (_serverVersion >= Version{0,3,2}) {
             if (!include.empty()) packet[0]["games"] = include; // new since 0.3.2
         }
-        if (_serverVersion < Version{0,3,3}) {
-            // TODO: change 'if' to 'else' once 0.3.2 is final/released
+        else {
             if (!exclude.empty()) packet[0]["exclusions"] = exclude; // backward compatibility; deprecated in 0.3.2
         }
         // TODO: drop support for "exclusions" 2023
