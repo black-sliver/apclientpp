@@ -32,8 +32,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <inttypes.h>
 #include <stdio.h>
 
-#define INVALID_NAME_ID std::numeric_limits<int64_t>::min();
-
 
 //#define APCLIENT_DEBUG // to get debug output
 
@@ -48,6 +46,8 @@ protected:
     }
 
 public:
+    static constexpr int64_t INVALID_NAME_ID = std::numeric_limits<int64_t>::min();
+
     APClient(const std::string& uuid, const std::string& game, const std::string& uri="ws://localhost:38281")
     {
         // fix up URI (add ws:// and default port if none is given)
@@ -311,7 +311,7 @@ public:
 
     /*Usage is not recomended
     * Return the id associated with the location name
-    * Return INVALID_NAME_ID when undefined*/
+    * Return APClient::INVALID_NAME_ID when undefined*/
     int64_t get_location_id(const std::string& name) const
     {
         for (const auto& pair : _locations)
@@ -330,7 +330,7 @@ public:
 
     /*Usage is not recomended
     * Return the id associated with the item name
-    * Return INVALID_NAME_ID when undefined*/
+    * Return APClient::INVALID_NAME_ID when undefined*/
     int64_t get_item_id(const std::string& name) const
     {
         for (const auto& pair : _items)
