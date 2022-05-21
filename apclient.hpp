@@ -308,11 +308,11 @@ public:
     }
 
     /*Usage is not recomended*/
-    int64_t get_location_id(std::string name)
+    int64_t get_location_id(const std::string& name) const
     {
-        for (auto it : _locations)
+        for (const auto& pair : _locations)
         {
-            if (it.second == name) return it.first;
+            if (pair.second == name) return pair.first;
         }
         return -1;
     }
@@ -325,11 +325,11 @@ public:
     }
 
     /*Usage is not recomended*/
-    int64_t get_item_id(std::string name)
+    int64_t get_item_id(const std::string& name) const
     {
-        for (auto it : _items)
+        for (const auto& pair : _items)
         {
-            if (it.second == name) return it.first;
+            if (pair.second == name) return pair.first;
         }
         return -1;
     }
