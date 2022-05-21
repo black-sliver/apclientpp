@@ -31,6 +31,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <limits>
 
 
 //#define APCLIENT_DEBUG // to get debug output
@@ -314,9 +315,12 @@ public:
     * Return APClient::INVALID_NAME_ID when undefined*/
     int64_t get_location_id(const std::string& name) const
     {
-        for (const auto& pair : _locations)
+        if (_dataPackage["games"].contains(_game))
         {
-            if (pair.second == name) return pair.first;
+            for (const auto& pair : _dataPackage["games"][_game]["location_name_to_id"].items())
+            {
+                if (pair.key() == name) return pair.value().get<int64_t>();
+            }
         }
         return INVALID_NAME_ID;
     }
@@ -333,9 +337,12 @@ public:
     * Return APClient::INVALID_NAME_ID when undefined*/
     int64_t get_item_id(const std::string& name) const
     {
-        for (const auto& pair : _items)
+        if (_dataPackage["games"].contains(_game))
         {
-            if (pair.second == name) return pair.first;
+            for (const auto& pair : _dataPackage["games"][_game]["item_name_to_id"].items())
+            {
+                if (pair.key() == name) return pair.value().get<int64_t>();
+            }
         }
         return INVALID_NAME_ID;
     }
