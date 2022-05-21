@@ -1,4 +1,4 @@
-/* Copyright (c) 2021 black-sliver
+/* Copyright (c) 2022 black-sliver, FelicitusNeko
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -9,6 +9,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #ifndef _APCLIENT_HPP
 #define _APCLIENT_HPP
+
 
 #include <wswrap.hpp>
 #include <string>
@@ -504,8 +505,7 @@ public:
         if (_serverVersion >= Version{0,3,2}) {
             if (!include.empty()) packet[0]["games"] = include; // new since 0.3.2
         }
-        if (_serverVersion < Version{0,3,3}) {
-            // TODO: change 'if' to 'else' once 0.3.2 is final/released
+        else {
             if (!exclude.empty()) packet[0]["exclusions"] = exclude; // backward compatibility; deprecated in 0.3.2
         }
         // TODO: drop support for "exclusions" 2023
