@@ -32,6 +32,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <inttypes.h>
 #include <stdio.h>
 
+#define INVALID_NAME_ID std::numeric_limits<int64_t>::min();
+
 
 //#define APCLIENT_DEBUG // to get debug output
 
@@ -307,14 +309,16 @@ public:
         return "Unknown";
     }
 
-    /*Usage is not recomended*/
+    /*Usage is not recomended
+    * Return the id associated with the location name
+    * Return INVALID_NAME_ID when undefined*/
     int64_t get_location_id(const std::string& name) const
     {
         for (const auto& pair : _locations)
         {
             if (pair.second == name) return pair.first;
         }
-        return -1;
+        return INVALID_NAME_ID;
     }
 
     std::string get_item_name(int64_t code)
@@ -324,14 +328,16 @@ public:
         return "Unknown";
     }
 
-    /*Usage is not recomended*/
+    /*Usage is not recomended
+    * Return the id associated with the item name
+    * Return INVALID_NAME_ID when undefined*/
     int64_t get_item_id(const std::string& name) const
     {
         for (const auto& pair : _items)
         {
             if (pair.second == name) return pair.first;
         }
-        return -1;
+        return INVALID_NAME_ID;
     }
 
     std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt=RenderFormat::TEXT)
@@ -534,7 +540,7 @@ public:
         _ws->send(packet.dump());
         return true;
     }
-    
+
     bool Say(const std::string& text)
     {
         if (_state < State::ROOM_INFO) return false; // or SLOT_CONNECTED?
@@ -684,7 +690,7 @@ private:
                     _seed = command["seed_name"];
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
-                    
+
                     // check if cached data package is already valid
                     // we are nice and check and query individual games
                     _dataPackageValid = true;
