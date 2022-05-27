@@ -31,6 +31,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <limits>
 
 
 //#define APCLIENT_DEBUG // to get debug output
@@ -46,6 +47,8 @@ protected:
     }
 
 public:
+    static constexpr int64_t INVALID_NAME_ID = std::numeric_limits<int64_t>::min();
+
     APClient(const std::string& uuid, const std::string& game, const std::string& uri="ws://localhost:38281")
     {
         // fix up URI (add ws:// and default port if none is given)
@@ -307,11 +310,41 @@ public:
         return "Unknown";
     }
 
+    /*Usage is not recomended
+    * Return the id associated with the location name
+    * Return APClient::INVALID_NAME_ID when undefined*/
+    int64_t get_location_id(const std::string& name) const
+    {
+        if (_dataPackage["games"].contains(_game))
+        {
+            for (const auto& pair : _dataPackage["games"][_game]["location_name_to_id"].items())
+            {
+                if (pair.key() == name) return pair.value().get<int64_t>();
+            }
+        }
+        return INVALID_NAME_ID;
+    }
+
     std::string get_item_name(int64_t code)
     {
         auto it = _items.find(code);
         if (it != _items.end()) return it->second;
         return "Unknown";
+    }
+
+    /*Usage is not recomended
+    * Return the id associated with the item name
+    * Return APClient::INVALID_NAME_ID when undefined*/
+    int64_t get_item_id(const std::string& name) const
+    {
+        if (_dataPackage["games"].contains(_game))
+        {
+            for (const auto& pair : _dataPackage["games"][_game]["item_name_to_id"].items())
+            {
+                if (pair.key() == name) return pair.value().get<int64_t>();
+            }
+        }
+        return INVALID_NAME_ID;
     }
 
     std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt=RenderFormat::TEXT)
@@ -514,7 +547,7 @@ public:
         _ws->send(packet.dump());
         return true;
     }
-    
+
     bool Say(const std::string& text)
     {
         if (_state < State::ROOM_INFO) return false; // or SLOT_CONNECTED?
@@ -664,7 +697,7 @@ private:
                     _seed = command["seed_name"];
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
-                    
+
                     // check if cached data package is already valid
                     // we are nice and check and query individual games
                     _dataPackageValid = true;
