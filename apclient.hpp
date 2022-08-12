@@ -258,8 +258,14 @@ public:
 
     bool set_data_package_from_file(const std::string& path)
     {
-        FILE* f = fopen(path.c_str(), "rb");
-        if (!f) return false;
+        FILE* f;
+#ifdef _MSC_VER
+        if ((fopen_s(&f, path.c_str(), "rb")) != 0) {
+#else
+        if ((f = fopen(path.c_str(), "rb")) == NULL) {
+#endif
+            return false;
+        }
         char* buf = nullptr;
         size_t len = (size_t)0;
         if ((0 == fseek(f, 0, SEEK_END)) &&
@@ -284,8 +290,14 @@ public:
 
     bool save_data_package(const std::string& path)
     {
-        FILE* f = fopen(path.c_str(), "wb");
-        if (!f) return false;
+        FILE* f;
+#ifdef _MSC_VER
+        if ((fopen_s(&f, path.c_str(), "wb")) != 0) {
+#else
+        if ((f = fopen(path.c_str(), "wb")) == NULL) {
+#endif
+            return false;
+        }
         std::string s = _dataPackage.dump();
         fwrite(s.c_str(), 1, s.length(), f);
         fclose(f);
