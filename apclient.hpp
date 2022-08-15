@@ -789,6 +789,7 @@ private:
                         for (int64_t location : _checkQueue) {
                             queuedChecks.push_back(location);
                         }
+                        _checkQueue.clear();
                         LocationChecks(queuedChecks);
                     }
                     if (!_scoutQueue.empty()) {
@@ -796,6 +797,7 @@ private:
                         for (int64_t location : _scoutQueue) {
                             queuedScouts.push_back(location);
                         }
+                        _scoutQueue.clear();
                         LocationScouts(queuedScouts);
                     }
         
