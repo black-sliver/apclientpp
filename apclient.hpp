@@ -80,6 +80,8 @@ public:
         };
         valijson::SchemaParser parser;
         parser.populateSchema(JsonSchemaAdapter(_packetSchemaJson), _packetSchema);
+        parser.populateSchema(JsonSchemaAdapter(_retrievedSchemaJson), _commandSchemas["Retrieved"]);
+        parser.populateSchema(JsonSchemaAdapter(_setReplySchemaJson), _commandSchemas["SetReply"]);
         connect_socket();
     }
 
@@ -176,6 +178,19 @@ public:
         }
     };
 
+    struct DataStorageOperation {
+        std::string operation;
+        json value;
+
+        friend void to_json(nlohmann::json &j, const DataStorageOperation &op)
+        {
+            j = nlohmann::json{
+                {"operation", op.operation},
+                {"value", op.value}
+            };
+        }
+    };
+
     void set_socket_connected_handler(std::function<void(void)> f)
     {
         _hOnSocketConnected = f;
@@ -244,6 +259,16 @@ public:
     void set_location_checked_handler(std::function<void(const std::list<int64_t>&)> f)
     {
         _hOnLocationChecked = f;
+    }
+
+    void set_retrieved_handler(std::function<void(std::map<std::string,json>)>& f)
+    {
+        _hOnRetrieved = f;
+    }
+
+    void set_set_reply_handler(std::function<void(const std::string&, const json&, const json&)> f)
+    {
+        _hOnSetReply = f;
     }
 
     void set_data_package(const json& data)
@@ -572,6 +597,46 @@ public:
         return true;
     }
 
+    bool Get(const std::list<std::string>& keys)
+    {
+        if (_state < State::SLOT_CONNECTED) return false;
+        auto packet = json{{
+            {"cmd", "Get"},
+            {"keys", keys},
+        }};
+        debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+        _ws->send(packet.dump());
+        return true;
+    }
+
+    bool Set(const std::string& key, const json& dflt, bool want_reply,
+             const std::list<DataStorageOperation>& operations)
+    {
+        if (_state < State::SLOT_CONNECTED) return false;
+        auto packet = json{{
+           {"cmd", "Set"},
+           {"key", key},
+           {"default", dflt},
+           {"want_reply", want_reply},
+           {"operations", operations}
+        }};
+        debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+        _ws->send(packet.dump());
+        return true;
+    }
+
+    bool SetNotify(const std::list<std::string>& keys)
+    {
+        if (_state < State::SLOT_CONNECTED) return false;
+        auto packet = json{{
+            {"cmd", "SetNotify"},
+            {"keys", keys},
+        }};
+        debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+        _ws->send(packet.dump());
+        return true;
+    }
+
     State get_state() const
     {
         return _state;
@@ -695,6 +760,12 @@ private:
             for (auto& command: packet) {
                 std::string cmd = command["cmd"];
                 JsonSchemaAdapter commandAdapter(command);
+                auto schemaIt = _commandSchemas.find(cmd);
+                if (schemaIt != _commandSchemas.end()) {
+                    if (!validator.validate(schemaIt->second, commandAdapter, nullptr)) {
+                        throw std::runtime_error("Command validation failed");
+                    }
+                }
 #ifdef APCLIENT_DEBUG
                 const size_t maxDumpLen = 512;
                 auto dump = command.dump().substr(0, maxDumpLen);
@@ -893,6 +964,19 @@ private:
                 else if (cmd == "Bounced") {
                     if (_hOnBounced) _hOnBounced(command);
                 }
+                else if (cmd == "Retrieved") {
+                    if (_hOnRetrieved) {
+                        std::map<std::string, json> keys;
+                        for (auto& pair: command["keys"].items())
+                            keys[pair.key()] = pair.value();
+                        _hOnRetrieved(keys);
+                    }
+                }
+                else if (cmd == "SetReply") {
+                    if (_hOnSetReply) {
+                        _hOnSetReply(command["key"].get<std::string>(), command["value"], command["original_value"]);
+                    }
+                }
                 else {
                     debug("unhandled cmd");
                 }
@@ -984,6 +1068,8 @@ private:
     std::function<void(const std::list<TextNode>&, const NetworkItem*, const int*)> _hOnPrintJson = nullptr;
     std::function<void(const json&)> _hOnBounced = nullptr;
     std::function<void(const std::list<int64_t>&)> _hOnLocationChecked = nullptr;
+    std::function<void(const std::map<std::string, json>&)> _hOnRetrieved = nullptr;
+    std::function<void(const std::string&, const json&, const json&)> _hOnSetReply = nullptr;
 
     unsigned long _lastSocketConnect;
     unsigned long _socketReconnectInterval = 1500;
@@ -1014,6 +1100,22 @@ private:
         }
     })"_json;
     valijson::Schema _packetSchema;
+
+    const json _retrievedSchemaJson = R"({
+        "type": "object",
+        "properties": {
+            "keys": { "type": "object" }
+        },
+        "required": [ "keys" ]
+    })"_json;
+    const json _setReplySchemaJson = R"({
+        "type": "object",
+        "properties": {
+            "key": { "type": "string" }
+        },
+        "required": [ "key", "value", "original_value" ]
+    })"_json;
+    std::map<std::string, valijson::Schema> _commandSchemas;
 };
 
 #endif // _APCLIENT_HPP
