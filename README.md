@@ -45,18 +45,32 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
     * Add subprojects\wswrap\include
     * Add subprojects\json\include
     * Add subprojects\valijson\include 
-* Add /Zc:__cplusplus to the command line
+* Add `/Zc:__cplusplus` to the command line
   * project properties -> C/C++ -> Command Line -> Additional Options
-* Add _WIN32_WINNT=0x0600 (or higher) to Preprocessor Definitions
+* Add `_WIN32_WINNT=0x0600` (or higher) to Preprocessor Definitions
   * project properties -> C/C++ -> Preprocessor -> Preprocessor Definitions
-* If your code includes <windows.h>, you must also define the WIN32_LEAN_AND_MEAN preprocessor
+* If your code includes <windows.h>, you must also define the `WIN32_LEAN_AND_MEAN` preprocessor
   * project properties -> C/C++ -> Preprocessor -> Preprocessor Definitions
-  * if your code relies on features outside of the include scope of WIN32_LEAN_AND_MEAN, you can choose to include apclientpp.hpp before including windows.h, in this case you also need to define the ASIO_NO_WIN32_LEAN_AND_MEAN preprocessor
+  * if your code relies on features outside the include scope of WIN32_LEAN_AND_MEAN, you can choose to include
+    apclientpp.hpp before including windows.h, in this case you also need to define the `ASIO_NO_WIN32_LEAN_AND_MEAN`
+    preprocessor
+
+
+## Implementations
+
+* [ap-soeclient](https://github.com/black-sliver/ap-soeclient) \
+  shell build scripts, gcc/mingw/emscripten, Linux/Windows/Webbrowser
+* [Meritous AP: apclient branch](https://github.com/FelicitusNeko/meritous-ap/tree/apclient) \
+  Makefile, gcc, Windows; wraps apclientpp in a C file
+* [The Witness Randomizer for Archipelago](https://github.com/Jarno458/The-Witness-Randomizer-for-Archipelago) \
+  VS2019, msvc, Windows
+* [Dark Souls III Archipelago client](https://github.com/Marechal-L/Dark-Souls-III-Archipelago-client) \
+  VS2022, msvc, Windows
 
 
 ## Gotchas
 
-* `poll()` handles the socket operations so it has to be called repeatedly while APClient exists.
+* `poll()` handles the socket operations, so it has to be called repeatedly while APClient exists.
 * If desired, multi-threading has to be done by the caller. Events fire from within `poll()`. While inside poll other threads may not access the instance.
 * Some versions of mingw may not define a compatible std::err
   * Commits from [this PR](https://github.com/zaphoyd/websocketpp/pull/479/files) can be cherry-picked in.
