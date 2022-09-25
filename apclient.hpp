@@ -261,7 +261,7 @@ public:
         _hOnLocationChecked = f;
     }
 
-    void set_retrieved_handler(std::function<void(std::map<std::string,json>)>& f)
+    void set_retrieved_handler(std::function<void(const std::map<std::string,json>&)> f)
     {
         _hOnRetrieved = f;
     }
