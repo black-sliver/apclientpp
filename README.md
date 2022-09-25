@@ -31,6 +31,8 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
   * use `StatusUpdate`, `LocationChecks` and `LocationScouts` to send status, checks and scouts
   * use `Say` to send a (chat) message
   * use `Bounce` to send a bounce (deathlink, ...)
+  * use `Get`, `Set` and `SetNotify` to access data storage api,
+    see [Archipelago network protocol](https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#get)
 * see [ap-soeclient](https://github.com/black-sliver/ap-soeclient) for an example
 * see [Gotchas](#gotchas)
 
