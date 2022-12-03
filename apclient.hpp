@@ -455,18 +455,19 @@ public:
         return true;
     }
 
-    bool LocationScouts(std::list<int64_t> locations)
+    bool LocationScouts(std::list<int64_t> locations, int create_as_hint = 0)
     {
         // returns true if scouts were sent or queued
         if (_state == State::SLOT_CONNECTED) {
             auto packet = json{{
                 {"cmd", "LocationScouts"},
                 {"locations", locations},
+                {"create_as_hint", create_as_hint},
             }};
             debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
             _ws->send(packet.dump());
         } else {
-            _scoutQueue.insert(locations.begin(), locations.end());
+            _scoutQueues[create_as_hint].insert(locations.begin(), locations.end());
         }
         return true;
     }
@@ -698,7 +699,7 @@ public:
     void reset()
     {
         _checkQueue.clear();
-        _scoutQueue.clear();
+        _scoutQueues.clear();
         _clientStatus = ClientStatus::UNKNOWN;
         _seed.clear();
         _slot.clear();
@@ -870,13 +871,17 @@ private:
                         _checkQueue.clear();
                         LocationChecks(queuedChecks);
                     }
-                    if (!_scoutQueue.empty()) {
-                        std::list<int64_t> queuedScouts;
-                        for (int64_t location : _scoutQueue) {
-                            queuedScouts.push_back(location);
+                    if (!_scoutQueues.empty()) {
+                        for (const auto& pair: _scoutQueues) {
+                            if (!pair.second.empty()) {
+                                std::list<int64_t> queuedScouts;
+                                for (int64_t location : pair.second) {
+                                    queuedScouts.push_back(location);
+                                }
+                                LocationScouts(queuedScouts, pair.first);
+                            }
                         }
-                        _scoutQueue.clear();
-                        LocationScouts(queuedScouts);
+                        _scoutQueues.clear();
                     }
         
                 }
@@ -1079,7 +1084,7 @@ private:
     unsigned long _lastSocketConnect;
     unsigned long _socketReconnectInterval = 1500;
     std::set<int64_t> _checkQueue;
-    std::set<int64_t> _scoutQueue;
+    std::map<int, std::set<int64_t>> _scoutQueues;
     ClientStatus _clientStatus = ClientStatus::UNKNOWN;
     std::string _seed;
     std::string _slot; // currently connected slot, if any
