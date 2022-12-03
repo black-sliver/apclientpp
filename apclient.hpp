@@ -657,6 +657,11 @@ public:
         return _slotnr;
     }
 
+    int get_team_number() const
+    {
+        return _team;
+    }
+
     bool is_data_package_valid() const
     {
         // returns true if cached texts are valid
