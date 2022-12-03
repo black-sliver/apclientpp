@@ -138,7 +138,7 @@ public:
         std::string type;
         std::string color;
         std::string text;
-        bool found = false;
+        int player = 0;
         unsigned flags = FLAG_NONE;
     };
 
@@ -407,8 +407,7 @@ public:
             } else if (node.type == "item_id") {
                 int64_t id = stoi64(node.text);
                 if (color.empty()) {
-                    if (node.found) color = "green";
-                    else if (node.flags & ItemFlags::FLAG_ADVANCEMENT) color = "plum";
+                    if (node.flags & ItemFlags::FLAG_ADVANCEMENT) color = "plum";
                     else if (node.flags & ItemFlags::FLAG_NEVER_EXCLUDE) color = "slateblue";
                     else if (node.flags & ItemFlags::FLAG_TRAP) color = "salmon";
                     else color = "cyan";
@@ -965,7 +964,7 @@ private:
                             part.value("type", ""),
                             part.value("color", ""),
                             part.value("text", ""),
-                            part.value<bool>("found", false),
+                            part.value("player", 0),
                             part.value("flags", 0U),
                         });
                     }
