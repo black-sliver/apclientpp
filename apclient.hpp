@@ -1113,7 +1113,7 @@ private:
         "properties": {
             "key": { "type": "string" }
         },
-        "required": [ "key", "value", "original_value" ]
+        "required": [ "key", "value" ]
     })"_json;
     std::map<std::string, valijson::Schema> _commandSchemas;
 };
