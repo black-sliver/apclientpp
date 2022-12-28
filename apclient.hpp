@@ -388,7 +388,7 @@ public:
             buf[len] = 0;
             try {
                 set_data_package(json::parse(buf));
-            } catch (std::exception) {
+            } catch (const std::exception&) {
                 free(buf);
                 fclose(f);
                 throw;
