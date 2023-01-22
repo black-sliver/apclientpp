@@ -356,8 +356,6 @@ public:
         });
     }
 
-    
-
     void set_data_package(const json& data)
     {
         // only apply from cache if not updated and it looks valid
@@ -697,31 +695,24 @@ public:
     }
 
     bool Set(const std::string& key, const json& dflt, bool want_reply,
-             const std::list<DataStorageOperation>& operations, const std::map<std::string, json> extras)
+             const std::list<DataStorageOperation>& operations, const json& extras = json::value_t::object)
     {
         if (_state < State::SLOT_CONNECTED) return false;
 
-        std::map<json, json> data = {
+        auto packet = json{{
            {"cmd", "Set"},
            {"key", key},
            {"default", dflt},
            {"want_reply", want_reply},
            {"operations", operations},
-        };
+        }};
 
-        for (auto [key, value] : extras) {
-            data[key] = value;
-        }
+        if (!extras.is_null())
+            packet[0].update(extras);
 
-        auto packet = json{ data };
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
-    }
-
-    bool Set(const std::string& key, const json& dflt, bool want_reply,
-        const std::list<DataStorageOperation>& operations) {
-        return Set(key, dflt, want_reply, operations, {});
     }
 
     bool SetNotify(const std::list<std::string>& keys)
@@ -1052,6 +1043,7 @@ private:
                 }
                 else if (cmd == "SetReply") {
                     if (_hOnSetReply) {
+                        command["original_value"]; // insert null if missing
                         _hOnSetReply(command);
                     }
                 }
