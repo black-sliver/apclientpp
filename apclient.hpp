@@ -344,9 +344,16 @@ public:
         _hOnRetrieved = f;
     }
 
-    void set_set_reply_handler(std::function<void(const std::string&, const json&, const json&)> f)
+    void set_set_reply_handler(std::function<void(const json& command)> f)
     {
         _hOnSetReply = f;
+    }
+
+    void set_set_reply_handler(std::function<void(const std::string&, const json&, const json&)> f) {
+        set_set_reply_handler([f](const json& command) {
+            if (!f) return;
+            f(command["key"].get<std::string>(), command["value"], command["original_value"]);
+        });
     }
 
     void set_data_package(const json& data)
@@ -688,16 +695,21 @@ public:
     }
 
     bool Set(const std::string& key, const json& dflt, bool want_reply,
-             const std::list<DataStorageOperation>& operations)
+             const std::list<DataStorageOperation>& operations, const json& extras = json::value_t::object)
     {
         if (_state < State::SLOT_CONNECTED) return false;
+
         auto packet = json{{
            {"cmd", "Set"},
            {"key", key},
            {"default", dflt},
            {"want_reply", want_reply},
-           {"operations", operations}
+           {"operations", operations},
         }};
+
+        if (!extras.is_null())
+            packet[0].update(extras);
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -1031,7 +1043,8 @@ private:
                 }
                 else if (cmd == "SetReply") {
                     if (_hOnSetReply) {
-                        _hOnSetReply(command["key"].get<std::string>(), command["value"], command["original_value"]);
+                        command["original_value"]; // insert null if missing
+                        _hOnSetReply(command);
                     }
                 }
                 else {
@@ -1126,7 +1139,7 @@ private:
     std::function<void(const json&)> _hOnBounced = nullptr;
     std::function<void(const std::list<int64_t>&)> _hOnLocationChecked = nullptr;
     std::function<void(const std::map<std::string, json>&)> _hOnRetrieved = nullptr;
-    std::function<void(const std::string&, const json&, const json&)> _hOnSetReply = nullptr;
+    std::function<void(const json&)> _hOnSetReply = nullptr;
 
     unsigned long _lastSocketConnect;
     unsigned long _socketReconnectInterval = 1500;
