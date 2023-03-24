@@ -1142,7 +1142,7 @@ private:
                     }
                     data["version"] = command["data"].value<int>("version", -1); // -1 for backwards compatibility
                     _dataPackageValid = false;
-                    set_data_package(data);
+                    _set_data_package(data);
                     _dataPackageValid = true;
                     if (_hOnDataPackageChanged) _hOnDataPackageChanged(_dataPackage);
                 }
