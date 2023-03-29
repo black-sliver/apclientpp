@@ -84,12 +84,18 @@ private:
         if (home)
             return path(home) / "Library" / "Caches" / app;
 #else
+#   if defined __EMSCRIPTEN__
+        if (fallbackPath.empty()) { // HOME might not be persistent on emscripten
+#   endif
         const char* xdg = std::getenv("XDG_CACHE_HOME");
         if (xdg)
             return path(xdg) / app;
         const char* home = std::getenv("HOME");
         if (home)
             return path(home) / ".cache" / app;
+#   if defined __EMSCRIPTEN__
+        }
+#   endif
 #endif
         if (!fallbackPath.empty())
             return path(fallbackPath) / "cache";
