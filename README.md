@@ -7,7 +7,8 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
 
 * gcc6 or msvc toolset v14.1 or newer on Windows
 * gcc5 or clang3.3 or newer on other platforms
-* std c++14 or newer (c++11 support needs a bit of rework)
+* std c++17 or newer for DefaultDataPackageStore (need to polyfill std::filesystem for older c++)
+* std c++14 or newer for APClient (c++11 support needs a bit of rework)
 
 
 ## How to use
@@ -49,6 +50,8 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
 
 * use `-DWSWRAP_SEND_EXCEPTIONS` or `#define WSWRAP_SEND_EXCEPTIONS` before including anything to get exceptions when
   a send fails
+* use `-DAP_NO_DEFAULT_DATA_PACKAGE_STORE` or `#define AP_NO_DEFAULT_DATA_PACKAGE_STORE` before including to not use
+  DefaultDataPackageStore automatically.
 
 
 ## When using Visual Studio for building
