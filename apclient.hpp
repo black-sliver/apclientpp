@@ -58,6 +58,8 @@ protected:
     APDataPackageStore() {}
 
 public:
+    virtual ~APDataPackageStore() {}
+
     virtual bool load(const std::string& game, const std::string& checksum, json& data) = 0;
     virtual bool save(const std::string& game, const json& data) = 0;
 };
