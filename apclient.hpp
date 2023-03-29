@@ -249,13 +249,13 @@ public:
             };
         }
 
-        constexpr bool operator<(const Version& other)
+        constexpr bool operator<(const Version& other) const
         {
             return (ma < other.ma) || (ma == other.ma && mi < other.mi) ||
                    (ma == other.ma && mi == other.mi && build < other.build);
         }
 
-        constexpr bool operator>=(const Version& other)
+        constexpr bool operator>=(const Version& other) const
         {
             return !(*this < other);
         }
