@@ -19,6 +19,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #if defined WIN32 || defined _WIN32
 #include <shlobj.h>
+//#include <sys/types.h>
+#include <sys/utime.h>
+#include <time.h>
+#else
+#include <time.h>
+#include <utime.h>
 #endif
 
 
@@ -49,6 +55,21 @@ private:
         if (checksum.empty())
             return _path / (safe_game + ".json");
         return (_path / safe_game) / (safe_checksum + ".json");
+    }
+
+    static void touch(const path& filename)
+    {
+#if defined WIN32 || defined _WIN32
+        struct __utimbuf64 ut;
+        ut.actime = _time64(NULL);
+        ut.modtime = ut.actime;
+        _wutime64(filename.c_str(), &ut);
+#else
+        struct utimbuf ut;
+        ut.actime = time(NULL);
+        ut.modtime = ut.actime;
+        utime(filename.c_str(), &ut);
+#endif
     }
 
     static path get_default_cache_dir(const std::string& fallbackPath, const std::string& app = "Archipelago")
@@ -91,6 +112,7 @@ public:
             if (f.fail() || f.eof())
                 return false;
             data = json::parse(f);
+            touch(p); // update file time to keep it in cache
             return true;
         } catch (const std::exception& ex) {
             log(("Failed to load " + p.string() + ":").c_str());
