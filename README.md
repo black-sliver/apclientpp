@@ -7,7 +7,7 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
 
 * gcc6 or msvc toolset v14.1 or newer on Windows
 * gcc5 or clang3.3 or newer on other platforms
-* std c++17 or newer for DefaultDataPackageStore (need to polyfill std::filesystem for older c++)
+* std c++17 or newer for DefaultDataPackageStore on Windows (polyfill currently only for posix)
 * std c++14 or newer for APClient (c++11 support needs a bit of rework)
 
 
