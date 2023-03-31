@@ -13,9 +13,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "apclient.hpp"
 #include <algorithm>
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
+
+#if (defined HAS_STD_FILESYSTEM || __cplusplus >= 201703L) && !defined NO_STD_FILESYSTEM
+#include <filesystem>
+#else
+#ifndef NO_STD_FILESYSTEM
+#define NO_STD_FILESYSTEM
+#endif
+#if defined WIN32 || defined _WIN32
+// Windows uses UC2 filenames, which is not implemented below.
+#error "Dummy filesystem not supported on Windows. Please use -std=c++17, write a custom DataPackageStore, or open a PR"
+#endif
+#include <string>
+#include <errno.h>
+#endif
 
 #if defined WIN32 || defined _WIN32
 #include <shlobj.h>
@@ -32,7 +45,83 @@ class DefaultDataPackageStore : public APDataPackageStore
 {
 private:
     typedef nlohmann::json json;
+#ifndef NO_STD_FILESYSTEM
     typedef std::filesystem::path path;
+#else
+    class path final
+    {
+        std::string s;
+
+    public:
+        path() = default;
+
+        path(const std::string& s)
+            : s(s)
+        {
+        }
+
+        path(const char* s)
+            : s(s)
+        {
+        }
+
+        const std::string& string() const
+        {
+            return s;
+        }
+
+        const char* c_str() const
+        {
+            return s.c_str();
+        }
+
+        path parent_path() const
+        {
+            if (s == "/")
+                return "/";
+            auto p = s.rfind("/");
+            if (p == s.npos)
+                return "";
+            return s.substr(0, p);
+        }
+
+        path operator/(const std::string& other) const
+        {
+            return s + "/" + other;
+        }
+
+        bool operator==(const std::string& other) const
+        {
+            return s == other;
+        }
+    };
+
+    bool create_directories(const path& d, std::error_code& ec) noexcept
+    {
+        size_t len = d.string().length();
+        if (len >= 256) {
+            ec = {ENOMEM, std::generic_category()};
+            return false;
+        }
+        char tmp[256];
+        char *p = NULL;
+        memcpy(tmp, d.c_str(), len + 1);
+
+        if (tmp[len - 1] == '/')
+            tmp[len - 1] = 0;
+        for (p = tmp + 1; *p; p++) {
+            if (*p == '/') {
+                *p = 0;
+                mkdir(tmp, S_IRWXU);
+                *p = '/';
+            }
+        }
+        mkdir(tmp, S_IRWXU);
+        if (errno != EEXIST)
+            ec = {errno, std::generic_category()};
+        return !!errno;
+    }
+#endif
 
     path _path;
 
@@ -114,7 +203,11 @@ public:
         if (p == "")
             return false;
         try {
+#ifdef NO_STD_FILESYSTEM
+            std::ifstream f(p.string(), std::ios::binary);
+#else
             std::ifstream f(p, std::ios::binary);
+#endif
             if (f.fail() || f.eof())
                 return false;
             data = json::parse(f);
@@ -129,7 +222,9 @@ public:
 
     virtual bool save(const std::string& game, const json& data) override
     {
+#ifndef NO_STD_FILESYSTEM
         using std::filesystem::create_directories;
+#endif
 
         if (!data.is_object())
             return false;
@@ -148,7 +243,11 @@ public:
             return false;
 
         try {
+#ifdef NO_STD_FILESYSTEM
+            std::ofstream f(p.string(), std::ios::binary);
+#else
             std::ofstream f(p, std::ios::binary);
+#endif
             f << data.dump();
             return true;
         } catch (const std::exception& ex) {
