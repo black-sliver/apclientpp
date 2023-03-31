@@ -15,8 +15,22 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <cstdlib>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <time.h>
 
-#if (defined HAS_STD_FILESYSTEM || __cplusplus >= 201703L) && !defined NO_STD_FILESYSTEM
+#if defined WIN32 || defined _WIN32
+#include <shlobj.h>
+#include <sys/utime.h>
+#else
+#include <utime.h>
+#endif
+
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < 101500
+#define NO_STD_FILESYSTEM
+#endif
+#endif
+
+#if (defined(HAS_STD_FILESYSTEM) || (__cplusplus >= 201703L)) && !defined(NO_STD_FILESYSTEM)
 #include <filesystem>
 #else
 #ifndef NO_STD_FILESYSTEM
@@ -28,16 +42,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #endif
 #include <string>
 #include <errno.h>
-#endif
-
-#if defined WIN32 || defined _WIN32
-#include <shlobj.h>
-//#include <sys/types.h>
-#include <sys/utime.h>
-#include <time.h>
-#else
-#include <time.h>
-#include <utime.h>
 #endif
 
 
