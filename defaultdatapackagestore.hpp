@@ -170,7 +170,7 @@ private:
 #if defined WIN32 || defined _WIN32
         WCHAR appData[MAX_PATH];
         HRESULT hres = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, appData);
-        if (hres == S_OK && appData && *appData)
+        if (hres == S_OK && *appData)
             return path(appData) / app / "Cache";
 #elif defined __APPLE__
         const char* home = std::getenv("HOME");
