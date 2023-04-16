@@ -279,6 +279,11 @@ public:
         _hOnSocketConnected = f;
     }
 
+    void set_socket_error_handler(std::function<void(const std::string&)> f)
+    {
+        _hOnSocketError = f;
+    }
+
     void set_socket_disconnected_handler(std::function<void(void)> f)
     {
         _hOnSocketDisconnected = f;
@@ -1212,6 +1217,7 @@ private:
     void onerror(const std::string& msg = "")
     {
         debug("onerror(" + msg + ")");
+        if (_hOnSocketError) _hOnSocketError(msg);
         // TODO: on desktop, we could check if the error was handle_read_http_response before switching to wss://
         //       and handle_transport_init before switching to ws://
         if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
@@ -1319,6 +1325,7 @@ private:
     bool _tryWSS = false;
 
     std::function<void(void)> _hOnSocketConnected = nullptr;
+    std::function<void(const std::string&)> _hOnSocketError = nullptr;
     std::function<void(void)> _hOnSocketDisconnected = nullptr;
     std::function<void(const json&)> _hOnSlotConnected = nullptr;
     std::function<void(void)> _hOnSlotDisconnected = nullptr;
