@@ -1209,9 +1209,9 @@ private:
         }
     }
 
-    void onerror()
+    void onerror(const std::string& msg = "")
     {
-        debug("onerror()");
+        debug("onerror(" + msg + ")");
         // TODO: on desktop, we could check if the error was handle_read_http_response before switching to wss://
         //       and handle_transport_init before switching to ws://
         if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
@@ -1239,7 +1239,11 @@ private:
                     [this]() { onopen(); },
                     [this]() { onclose(); },
                     [this](const std::string& s) { onmessage(s); },
+#if WSWRAP_VERSION >= 10200
+                    [this](const std::string& s) { onerror(s); }
+#else
                     [this]() { onerror(); }
+#endif
 #if WSWRAP_VERSION >= 10100
                     , _certStore
 #endif
