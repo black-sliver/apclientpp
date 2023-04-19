@@ -497,6 +497,16 @@ public:
         return true;
     }
 
+    const std::set<int64_t> get_checked_locations() const
+    {
+        return _checkedLocations;
+    }
+
+    const std::set<int64_t> get_missing_locations() const
+    {
+        return _missingLocations;
+    }
+
     std::string get_player_alias(int slot)
     {
         if (slot == 0) return "Server";
@@ -606,10 +616,15 @@ public:
                 {"cmd", "LocationChecks"},
                 {"locations", locations},
             }};
+
             debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
             _ws->send(packet.dump());
         } else {
             _checkQueue.insert(locations.begin(), locations.end());
+        }
+        for (const auto& location: locations) {
+            _checkedLocations.insert(location);
+            _missingLocations.erase(location);
         }
         return true;
     }
@@ -1079,6 +1094,7 @@ private:
                     }
                 }
                 else if (cmd == "Connected") {
+                    // store data
                     _state = State::SLOT_CONNECTED;
                     _team = command["team"];
                     _slotnr = command["slot"];
@@ -1093,18 +1109,9 @@ private:
                             player["name"].get<std::string>(),
                         });
                     }
-                    if (_hOnSlotConnected) _hOnSlotConnected(command["slot_data"]);
-                    // TODO: store checked/missing locations
-                    if (_hOnLocationChecked) {
-                        std::list<int64_t> checkedLocations;
-                        for (auto& location: command["checked_locations"]) {
-                            checkedLocations.push_back(location.get<int64_t>());
-                        }
-                        if (!checkedLocations.empty())
-                            _hOnLocationChecked(checkedLocations);
-                    }
-
-                    //Send the checks and scouts queued if any
+                    _checkedLocations = command.value<std::set<int64_t>>("checked_locations", {});
+                    _missingLocations = command.value<std::set<int64_t>>("missing_locations", {});
+                    // send queued checks if any - this makes sure checked/missing is up to date
                     if (!_checkQueue.empty()) {
                         std::list<int64_t> queuedChecks;
                         for (int64_t location : _checkQueue) {
@@ -1113,6 +1120,18 @@ private:
                         _checkQueue.clear();
                         LocationChecks(queuedChecks);
                     }
+                    // run the callbacks
+                    if (_hOnSlotConnected)
+                        _hOnSlotConnected(command["slot_data"]);
+                    if (_hOnLocationChecked) {
+                        std::list<int64_t> checkedLocations;
+                        for (auto& location: command["checked_locations"]) {
+                            checkedLocations.push_back(location.get<int64_t>());
+                        }
+                        if (!checkedLocations.empty())
+                            _hOnLocationChecked(checkedLocations);
+                    }
+                    // send queued scouts if any
                     if (!_scoutQueues.empty()) {
                         for (const auto& pair: _scoutQueues) {
                             if (!pair.second.empty()) {
@@ -1125,7 +1144,6 @@ private:
                         }
                         _scoutQueues.clear();
                     }
-        
                 }
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
@@ -1155,11 +1173,13 @@ private:
                     if (_hOnLocationInfo) _hOnLocationInfo(items);
                 }
                 else if (cmd == "RoomUpdate") {
-                    // TODO: store checked/missing locations
                     if (_hOnLocationChecked) {
                         std::list<int64_t> checkedLocations;
-                        for (auto& location: command["checked_locations"]) {
-                            checkedLocations.push_back(location.get<int64_t>());
+                        for (const auto& j: command["checked_locations"]) {
+                            int64_t location = j.get<int64_t>();
+                            checkedLocations.push_back(location);
+                            _checkedLocations.insert(location);
+                            _missingLocations.erase(location);
                         }
                         if (!checkedLocations.empty())
                             _hOnLocationChecked(checkedLocations);
@@ -1362,6 +1382,8 @@ private:
     int _locationCount = 0;
     int _hintCostPercent = 0;
     int _hintPoints = 0;
+    std::set<int64_t> _checkedLocations;
+    std::set<int64_t> _missingLocations;
     APDataPackageStore* _dataPackageStore;
 #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
     bool _dataPackageStoreAllocated = false;
