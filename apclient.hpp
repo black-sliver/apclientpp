@@ -1173,17 +1173,15 @@ private:
                     if (_hOnLocationInfo) _hOnLocationInfo(items);
                 }
                 else if (cmd == "RoomUpdate") {
-                    if (_hOnLocationChecked) {
-                        std::list<int64_t> checkedLocations;
-                        for (const auto& j: command["checked_locations"]) {
-                            int64_t location = j.get<int64_t>();
-                            checkedLocations.push_back(location);
-                            _checkedLocations.insert(location);
-                            _missingLocations.erase(location);
-                        }
-                        if (!checkedLocations.empty())
-                            _hOnLocationChecked(checkedLocations);
+                    std::list<int64_t> checkedLocations;
+                    for (const auto& j: command["checked_locations"]) {
+                        int64_t location = j.get<int64_t>();
+                        checkedLocations.push_back(location);
+                        _checkedLocations.insert(location);
+                        _missingLocations.erase(location);
                     }
+                    if (_hOnLocationChecked && !checkedLocations.empty())
+                        _hOnLocationChecked(checkedLocations);
                     if (command["hint_points"].is_number_integer())
                         _hintPoints = command["hint_points"];
                 }
