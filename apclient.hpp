@@ -214,14 +214,35 @@ public:
         std::string text;
         int player = 0;
         unsigned flags = FLAG_NONE;
+
+        static TextNode from_json(const json& j)
+        {
+            return {
+                j.value("type", ""),
+                j.value("color", ""),
+                j.value("text", ""),
+                j.value("player", 0),
+                j.value("flags", 0U),
+            };
+        }
     };
 
+    /**
+     * Parsed arguments of PrintJSON.
+     * Pointer arguments are optional (null if missing).
+     * You can not store any pointer. You'll have to store a copy of the value.
+     */
     struct PrintJSONArgs {
         std::list<TextNode> data;
         std::string type;
+        // members below are optional and absent when null
         int* receiving = nullptr;
         NetworkItem* item = nullptr;
         bool* found = nullptr;
+        int* team = nullptr;
+        int* slot = nullptr;
+        std::string* message = nullptr;
+        std::list<std::string>* tags = nullptr;
         int* countdown = nullptr;
     };
 
@@ -344,21 +365,25 @@ public:
             int receiving;
             NetworkItem item;
             bool found;
+            int team;
+            int slot;
+            std::string message;
+            std::list<std::string> tags;
             int countdown;
 
             for (const auto& part: command["data"]) {
-                args.data.push_back({
-                    part.value("type", ""),
-                    part.value("color", ""),
-                    part.value("text", ""),
-                    part.value("player", 0),
-                    part.value("flags", 0U),
-                });
+                args.data.push_back(TextNode::from_json(part));
             }
 
             args.type = command.value("type", "");
 
-            auto it = command.find("item");
+            auto it = command.find("receiving");
+            if (it != command.end()) {
+               receiving = *it;
+               args.receiving = &receiving;
+            }
+
+            it = command.find("item");
             if (it != command.end()) {
                 item = {
                    it->value("item", (int64_t) 0),
@@ -370,16 +395,34 @@ public:
                 args.item = &item;
             }
 
-            it = command.find("receiving");
-            if (it != command.end()) {
-               receiving = *it;
-               args.receiving = &receiving;
-            }
-
             it = command.find("found");
             if (it != command.end()) {
                 found = *it;
                 args.found = &found;
+            }
+
+            it = command.find("team");
+            if (it != command.end()) {
+                team = *it;
+                args.team = &team;
+            }
+
+            it = command.find("slot");
+            if (it != command.end()) {
+                slot = *it;
+                args.slot = &slot;
+            }
+
+            it = command.find("message");
+            if (it != command.end()) {
+                message = *it;
+                args.message = &message;
+            }
+
+            it = command.find("tags");
+            if (it != command.end()) {
+                it->get_to(tags);
+                args.tags = &tags;
             }
 
             it = command.find("countdown");
@@ -402,9 +445,36 @@ public:
 
     void set_print_json_handler(std::function<void(const std::list<TextNode>&)> f)
     {
-        set_print_json_handler([f](const PrintJSONArgs& args) {
+        set_print_json_handler([f](const json& command) {
             if (!f) return;
-            f(args.data);
+
+            std::list<TextNode> data;
+
+            for (const auto& part: command["data"]) {
+                data.push_back(TextNode::from_json(part));
+            }
+
+            f(data);
+        });
+    }
+
+    void set_print_json_handler(std::function<void(const std::list<TextNode>&, const json& extra)> f)
+    {
+        set_print_json_handler([f](const json& command) {
+            if (f) return;
+
+            std::list<TextNode> data;
+            json extra;
+
+            for (const auto& part: command["data"]) {
+                data.push_back(TextNode::from_json(part));
+            }
+
+            for (const auto& pair: command.items()) {
+                extra[pair.key()] = pair.value();
+            }
+
+            f(data, extra);
         });
     }
 
