@@ -1344,6 +1344,11 @@ private:
             );
         } catch (const std::exception& ex) {
             _ws = nullptr;
+            if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
+                _uri = "wss://" + _uri.substr(5);
+            } else {
+                _uri = "ws://" + _uri.substr(6);
+            }
             log((std::string("error connecting: ") + ex.what()).c_str());
         }
         _lastSocketConnect = now();
