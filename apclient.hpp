@@ -461,7 +461,8 @@ public:
     void set_print_json_handler(std::function<void(const std::list<TextNode>&, const json& extra)> f)
     {
         set_print_json_handler([f](const json& command) {
-            if (f) return;
+            if (!f)
+                return;
 
             std::list<TextNode> data;
             json extra;
