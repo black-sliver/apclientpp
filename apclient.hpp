@@ -491,6 +491,16 @@ public:
 
     void set_retrieved_handler(std::function<void(const std::map<std::string,json>&)> f)
     {
+        set_retrieved_handler([f](const std::map<std::string,json>& keys, const json& message) {
+            if (!f)
+                return;
+
+            f(keys);
+        });
+    }
+
+    void set_retrieved_handler(std::function<void(const std::map<std::string,json>&, const json& message)> f)
+    {
         _hOnRetrieved = f;
     }
 
@@ -843,13 +853,18 @@ public:
         return true;
     }
 
-    bool Get(const std::list<std::string>& keys)
+    bool Get(const std::list<std::string>& keys, const json& extras = json::value_t::object)
     {
         if (_state < State::SLOT_CONNECTED) return false;
+
         auto packet = json{{
             {"cmd", "Get"},
             {"keys", keys},
         }};
+
+        if (!extras.is_null())
+            packet[0].update(extras);
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -1285,7 +1300,7 @@ private:
                         std::map<std::string, json> keys;
                         for (auto& pair: command["keys"].items())
                             keys[pair.key()] = pair.value();
-                        _hOnRetrieved(keys);
+                        _hOnRetrieved(keys, command);
                     }
                 }
                 else if (cmd == "SetReply") {
@@ -1432,7 +1447,7 @@ private:
     std::function<void(const json&)> _hOnPrintJson = nullptr;
     std::function<void(const json&)> _hOnBounced = nullptr;
     std::function<void(const std::list<int64_t>&)> _hOnLocationChecked = nullptr;
-    std::function<void(const std::map<std::string, json>&)> _hOnRetrieved = nullptr;
+    std::function<void(const std::map<std::string, json>&, const json&)> _hOnRetrieved = nullptr;
     std::function<void(const json&)> _hOnSetReply = nullptr;
 
     unsigned long _lastSocketConnect;
