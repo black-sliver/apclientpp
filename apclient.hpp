@@ -206,6 +206,16 @@ public:
         int slot;
         std::string alias;
         std::string name;
+
+        friend void to_json(nlohmann::json &j, const NetworkPlayer &player)
+        {
+            j = nlohmann::json{
+                {"team", player.team},
+                {"slot", player.slot},
+                {"alias", player.alias},
+                {"name", player.name},
+            };
+        }
     };
 
     struct TextNode {
@@ -586,6 +596,11 @@ public:
     const std::set<int64_t> get_missing_locations() const
     {
         return _missingLocations;
+    }
+
+    const std::list<NetworkPlayer>& get_players() const
+    {
+        return _players;
     }
 
     std::string get_player_alias(int slot)
