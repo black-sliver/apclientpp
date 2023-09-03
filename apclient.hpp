@@ -1387,8 +1387,9 @@ private:
         // NOTE: browsers have a very badly implemented connection rate limit
         // alternatively we could always wait for onclose() to get the actual
         // allowed rate once we are over it
-        unsigned long maxReconnectInterval = std::max(15000UL, _ws->get_ok_connect_interval());
-        if (_socketReconnectInterval > maxReconnectInterval) _socketReconnectInterval = maxReconnectInterval;
+        unsigned long maxReconnectInterval = std::max(15000UL, _ws ? _ws->get_ok_connect_interval() : 0);
+        if (_socketReconnectInterval > maxReconnectInterval)
+            _socketReconnectInterval = maxReconnectInterval;
     }
 
     void _set_data_package(const json& data)
