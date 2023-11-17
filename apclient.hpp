@@ -590,19 +590,23 @@ public:
 
     std::string get_player_alias(int slot)
     {
-        if (slot == 0) return "Server";
+        if (slot == 0)
+            return "Server";
+
         for (const auto& player: _players) {
             if (player.team == _team && player.slot == slot) {
                 return player.alias;
             }
         }
+
         return "Unknown";
     }
 
     std::string get_location_name(int64_t code)
     {
         auto it = _locations.find(code);
-        if (it != _locations.end()) return it->second;
+        if (it != _locations.end())
+            return it->second;
         return "Unknown";
     }
 
@@ -613,7 +617,8 @@ public:
     {
         if (_dataPackage["games"].contains(_game)) {
             for (const auto& pair: _dataPackage["games"][_game]["location_name_to_id"].items()) {
-                if (pair.key() == name) return pair.value().get<int64_t>();
+                if (pair.key() == name)
+                    return pair.value().get<int64_t>();
             }
         }
         return INVALID_NAME_ID;
@@ -622,7 +627,8 @@ public:
     std::string get_item_name(int64_t code)
     {
         auto it = _items.find(code);
-        if (it != _items.end()) return it->second;
+        if (it != _items.end())
+            return it->second;
         return "Unknown";
     }
 
@@ -633,7 +639,8 @@ public:
     {
         if (_dataPackage["games"].contains(_game)) {
             for (const auto& pair: _dataPackage["games"][_game]["item_name_to_id"].items()) {
-                if (pair.key() == name) return pair.value().get<int64_t>();
+                if (pair.key() == name)
+                    return pair.value().get<int64_t>();
             }
         }
         return INVALID_NAME_ID;
@@ -719,6 +726,7 @@ public:
                 {"locations", locations},
                 {"create_as_hint", create_as_hint},
             }};
+
             debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
             _ws->send(packet.dump());
         } else {
@@ -735,10 +743,12 @@ public:
                 {"cmd", "StatusUpdate"},
                 {"status", status},
             }};
+
             debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
             _ws->send(packet.dump());
             return true;
         }
+
         _clientStatus = status;
         return false;
     }
@@ -746,7 +756,9 @@ public:
     bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
                      const std::list<std::string>& tags = {}, const Version& ver = {0, 2, 6})
     {
-        if (_state < State::SOCKET_CONNECTED) return false;
+        if (_state < State::SOCKET_CONNECTED)
+            return false;
+
         _slot = name;
         debug("Connecting slot...");
         auto packet = json{{
@@ -759,6 +771,7 @@ public:
             {"items_handling", items_handling},
             {"tags", tags},
         }};
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -781,12 +794,16 @@ public:
 
     bool ConnectUpdate(bool send_items_handling, int items_handling, bool send_tags, const std::list<std::string>& tags)
     {
-        if (!send_items_handling && !send_tags) return false;
+        if (!send_items_handling && !send_tags)
+            return false;
+
         auto packet = json{{
             {"cmd", "ConnectUpdate"},
         }};
+
         if (send_items_handling) packet[0]["items_handling"] = items_handling;
         if (send_tags) packet[0]["tags"] = tags;
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -794,10 +811,13 @@ public:
 
     bool Sync()
     {
-        if (_state < State::SLOT_CONNECTED) return false;
+        if (_state < State::SLOT_CONNECTED)
+            return false;
+
         auto packet = json{{
             {"cmd", "Sync"},
         }};
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -805,16 +825,20 @@ public:
 
     bool GetDataPackage(const std::list<std::string>& exclude = {}, const std::list<std::string>& include = {})
     {
-        if (_state < State::ROOM_INFO) return false;
+        if (_state < State::ROOM_INFO)
+            return false;
+
         auto packet = json{{
             {"cmd", "GetDataPackage"},
         }};
+
         if (_serverVersion >= Version{0, 3, 2}) {
             if (!include.empty()) packet[0]["games"] = include; // new since 0.3.2
         } else {
             if (!exclude.empty()) packet[0]["exclusions"] = exclude; // backward compatibility; deprecated in 0.3.2
         }
         // TODO: drop support for "exclusions" 2023
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -823,14 +847,18 @@ public:
     bool Bounce(const json& data, std::list<std::string> games = {},
                 std::list<int> slots = {}, std::list<std::string> tags = {})
     {
-        if (_state < State::ROOM_INFO) return false; // or SLOT_CONNECTED?
+        if (_state < State::ROOM_INFO)
+            return false; // or SLOT_CONNECTED?
+
         auto packet = json{{
             {"cmd", "Bounce"},
             {"data", data},
         }};
+
         if (!games.empty()) packet[0]["games"] = games;
         if (!slots.empty()) packet[0]["slots"] = slots;
         if (!tags.empty()) packet[0]["tags"] = tags;
+
 #ifdef APCLIENT_DEBUG
         const size_t maxDumpLen = 512;
         auto dump = packet[0].dump().substr(0, maxDumpLen);
@@ -843,23 +871,29 @@ public:
 
     bool Say(const std::string& text)
     {
-        if (_state < State::ROOM_INFO) return false; // or SLOT_CONNECTED?
+        if (_state < State::ROOM_INFO) // or SLOT_CONNECTED?
+            return false;
+
         auto packet = json{{
             {"cmd", "Say"},
             {"text", text},
         }};
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
+
         return true;
     }
 
     bool Get(const std::list<std::string>& keys)
     {
-        if (_state < State::SLOT_CONNECTED) return false;
+        if (_state < State::SLOT_CONNECTED)
+            return false;
+
         auto packet = json{{
             {"cmd", "Get"},
             {"keys", keys},
         }};
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
@@ -868,7 +902,8 @@ public:
     bool Set(const std::string& key, const json& dflt, bool want_reply,
              const std::list<DataStorageOperation>& operations, const json& extras = json::value_t::object)
     {
-        if (_state < State::SLOT_CONNECTED) return false;
+        if (_state < State::SLOT_CONNECTED)
+            return false;
 
         auto packet = json{{
            {"cmd", "Set"},
@@ -888,11 +923,14 @@ public:
 
     bool SetNotify(const std::list<std::string>& keys)
     {
-        if (_state < State::SLOT_CONNECTED) return false;
+        if (_state < State::SLOT_CONNECTED)
+            return false;
+
         auto packet = json{{
             {"cmd", "SetNotify"},
             {"keys", keys},
         }};
+
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
         return true;
