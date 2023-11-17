@@ -51,6 +51,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 //#define AP_NO_DEFAULT_DATA_PACKAGE_STORE // to disable auto-construction of data package store
 
 
+/**
+ * Abstract data package storage handler.
+ *
+ * Inherit, instantiate and pass to APClient's constructor to handle data package caching.
+ * A default implementation is `DefaultDataPackageStore` in `defaultdatapackagestore.hpp`.
+ */
 class APDataPackageStore {
 protected:
     typedef nlohmann::json json;
@@ -70,6 +76,11 @@ public:
 #endif
 
 
+/**
+ * Archipelago Client implementation.
+ *
+ * Instantiate, hook up callbacks and call `poll()` repeatedly to attach your game to a server.
+ */
 class APClient {
 protected:
     typedef nlohmann::json json;
@@ -934,13 +945,16 @@ public:
         return _hintCostPercent;
     }
 
+    /**
+     * Checks if data package seems to be valid for the server/room.
+     * If not, get_location_name() and get_item_name() will return "Unknown"
+     */
     bool is_data_package_valid() const
     {
-        // returns true if cached texts are valid
-        // if not, get_location_name() and get_item_name() will return "Unknown"
         return _dataPackageValid;
     }
 
+    /// Get the estimated server Unix time stamp as double. Useful to filter deathlink
     double get_server_time() const
     {
         auto td = std::chrono::duration<double>(
@@ -948,6 +962,10 @@ public:
         return _serverConnectTime + td.count();
     }
 
+    /**
+     * Poll the network layer and dispatch callbacks.
+     * This has to be called repeatedly (i.e. once per frame) while this object exists.
+     */
     void poll()
     {
         if (_ws && _state == State::DISCONNECTED) {
@@ -967,6 +985,7 @@ public:
         }
     }
 
+    /// Clear all state and reconnect on next poll
     void reset()
     {
         _checkQueue.clear();
