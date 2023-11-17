@@ -1340,6 +1340,17 @@ private:
                         _hOnLocationChecked(checkedLocations);
                     if (command["hint_points"].is_number_integer())
                         _hintPoints = command["hint_points"];
+                    if (command["players"].is_array()) {
+                        _players.clear();
+                        for (auto& player: command["players"]) {
+                            _players.push_back({
+                                player["team"].get<int>(),
+                                player["slot"].get<int>(),
+                                player["alias"].get<std::string>(),
+                                player["name"].get<std::string>(),
+                            });
+                        }
+                    }
                 }
                 else if (cmd == "DataPackage") {
                     auto data = _dataPackage;
