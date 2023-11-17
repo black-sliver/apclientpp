@@ -217,6 +217,16 @@ public:
         int slot;
         std::string alias;
         std::string name;
+
+        friend void to_json(nlohmann::json &j, const NetworkPlayer &player)
+        {
+            j = nlohmann::json{
+                {"team", player.team},
+                {"slot", player.slot},
+                {"alias", player.alias},
+                {"name", player.name},
+            };
+        }
     };
 
     struct TextNode {
@@ -472,7 +482,8 @@ public:
     void set_print_json_handler(std::function<void(const std::list<TextNode>&, const json& extra)> f)
     {
         set_print_json_handler([f](const json& command) {
-            if (f) return;
+            if (!f)
+                return;
 
             std::list<TextNode> data;
             json extra;
@@ -500,6 +511,16 @@ public:
     }
 
     void set_retrieved_handler(std::function<void(const std::map<std::string,json>&)> f)
+    {
+        set_retrieved_handler([f](const std::map<std::string,json>& keys, const json& message) {
+            if (!f)
+                return;
+
+            f(keys);
+        });
+    }
+
+    void set_retrieved_handler(std::function<void(const std::map<std::string,json>&, const json& message)> f)
     {
         _hOnRetrieved = f;
     }
@@ -586,6 +607,11 @@ public:
     const std::set<int64_t> get_missing_locations() const
     {
         return _missingLocations;
+    }
+
+    const std::list<NetworkPlayer>& get_players() const
+    {
+        return _players;
     }
 
     std::string get_player_alias(int slot)
@@ -884,7 +910,7 @@ public:
         return true;
     }
 
-    bool Get(const std::list<std::string>& keys)
+    bool Get(const std::list<std::string>& keys, const json& extras = json::value_t::object)
     {
         if (_state < State::SLOT_CONNECTED)
             return false;
@@ -893,6 +919,9 @@ public:
             {"cmd", "Get"},
             {"keys", keys},
         }};
+
+        if (!extras.is_null())
+            packet[0].update(extras);
 
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
         _ws->send(packet.dump());
@@ -1341,7 +1370,7 @@ private:
                         std::map<std::string, json> keys;
                         for (auto& pair: command["keys"].items())
                             keys[pair.key()] = pair.value();
-                        _hOnRetrieved(keys);
+                        _hOnRetrieved(keys, command);
                     }
                 }
                 else if (cmd == "SetReply") {
@@ -1401,6 +1430,11 @@ private:
             );
         } catch (const std::exception& ex) {
             _ws = nullptr;
+            if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
+                _uri = "wss://" + _uri.substr(5);
+            } else {
+                _uri = "ws://" + _uri.substr(6);
+            }
             log((std::string("error connecting: ") + ex.what()).c_str());
         }
         _lastSocketConnect = now();
@@ -1408,8 +1442,9 @@ private:
         // NOTE: browsers have a very badly implemented connection rate limit
         // alternatively we could always wait for onclose() to get the actual
         // allowed rate once we are over it
-        unsigned long maxReconnectInterval = std::max(15000UL, _ws->get_ok_connect_interval());
-        if (_socketReconnectInterval > maxReconnectInterval) _socketReconnectInterval = maxReconnectInterval;
+        unsigned long maxReconnectInterval = std::max(15000UL, _ws ? _ws->get_ok_connect_interval() : 0);
+        if (_socketReconnectInterval > maxReconnectInterval)
+            _socketReconnectInterval = maxReconnectInterval;
     }
 
     void _set_data_package(const json& data)
@@ -1483,7 +1518,7 @@ private:
     std::function<void(const json&)> _hOnPrintJson = nullptr;
     std::function<void(const json&)> _hOnBounced = nullptr;
     std::function<void(const std::list<int64_t>&)> _hOnLocationChecked = nullptr;
-    std::function<void(const std::map<std::string, json>&)> _hOnRetrieved = nullptr;
+    std::function<void(const std::map<std::string, json>&, const json&)> _hOnRetrieved = nullptr;
     std::function<void(const json&)> _hOnSetReply = nullptr;
 
     unsigned long _lastSocketConnect;
