@@ -204,6 +204,12 @@ public:
         FLAG_TRAP = 4,
     };
 
+    enum class SlotType : int {
+        SPECTATOR = 0,
+        PLAYER = 1,
+        GROUP = 2,
+    };
+
     struct NetworkItem {
         int64_t item;
         int64_t location;
@@ -227,6 +233,13 @@ public:
                 {"name", player.name},
             };
         }
+    };
+
+    struct NetworkSlot {
+        std::string name;
+        std::string game;
+        SlotType type;
+        std::list<int> members;
     };
 
     struct TextNode {
@@ -628,11 +641,36 @@ public:
         return "Unknown";
     }
 
-    std::string get_location_name(int64_t code)
+    const std::string& get_player_game(int player)
     {
-        auto it = _locations.find(code);
-        if (it != _locations.end())
-            return it->second;
+        static const std::string ARCHIPELAGO_STRING = "Archipelago";
+        static const std::string BLANK = "";
+
+        if (player == 0)
+            return ARCHIPELAGO_STRING;
+
+        auto slotIt = _slotInfo.find(player);
+        if (slotIt != _slotInfo.end())
+            return slotIt->second.game;
+
+        return BLANK;
+    }
+
+    std::string get_location_name(int64_t code, const std::string& game="")
+    {
+        if (game.empty()) { // old code path ("global" ids)
+            auto it = _locations.find(code);
+            if (it != _locations.end())
+                return it->second;
+        } else {
+            auto locationsIt = _gameLocations.find(game);
+            if (locationsIt != _gameLocations.end()) {
+                auto it = locationsIt->second.find(code);
+                if (it != locationsIt->second.end()) {
+                    return it->second;
+                }
+            }
+        }
         return "Unknown";
     }
 
@@ -650,11 +688,21 @@ public:
         return INVALID_NAME_ID;
     }
 
-    std::string get_item_name(int64_t code)
+    std::string get_item_name(int64_t code, const std::string& game="")
     {
-        auto it = _items.find(code);
-        if (it != _items.end())
-            return it->second;
+        if (game.empty()) { // old code path ("global" ids)
+            auto it = _items.find(code);
+            if (it != _items.end())
+                return it->second;
+        } else {
+            auto itemsIt = _gameItems.find(game);
+            if (itemsIt != _gameItems.end()) {
+                auto it = itemsIt->second.find(code);
+                if (it != itemsIt->second.end()) {
+                    return it->second;
+                }
+            }
+        }
         return "Unknown";
     }
 
@@ -696,11 +744,11 @@ public:
                     else if (node.flags & ItemFlags::FLAG_TRAP) color = "salmon";
                     else color = "cyan";
                 }
-                text = get_item_name(id);
+                text = get_item_name(id, get_player_game(node.player));
             } else if (node.type == "location_id") {
                 int64_t id = stoi64(node.text);
                 if (color.empty()) color = "blue";
-                text = get_location_name(id);
+                text = get_location_name(id, get_player_game(node.player));
             } else {
                 text = node.text;
             }
@@ -1276,6 +1324,18 @@ private:
                         _checkQueue.clear();
                         LocationChecks(queuedChecks);
                     }
+                    if (command["slot_info"].is_object()) {
+                        for (auto it: command["slot_info"].items()) {
+                            NetworkSlot slot;
+                            const auto& j = it.value();
+                            j.at("name").get_to(slot.name);
+                            j.at("game").get_to(slot.game);
+                            j.at("type").get_to(slot.type);
+                            j.at("group_members").get_to(slot.members);
+                            int player = atoi(it.key().c_str());
+                            _slotInfo[player] = slot;
+                        }
+                    }
                     // run the callbacks
                     if (_hOnSlotConnected)
                         _hOnSlotConnected(command["slot_data"]);
@@ -1464,11 +1524,17 @@ private:
         for (auto gamepair: _dataPackage["games"].items()) {
             const auto& gamedata = gamepair.value();
             _dataPackage["games"][gamepair.key()] = gamedata;
+            auto& gameItems = _gameItems[gamepair.key()];
             for (auto pair: gamedata["item_name_to_id"].items()) {
-                _items[pair.value().get<int64_t>()] = pair.key();
+                auto id = pair.value().get<int64_t>();
+                _items[id] = pair.key();
+                gameItems[id] = pair.key();
             }
+            auto& gameLocations = _gameLocations[gamepair.key()];
             for (auto pair: gamedata["location_name_to_id"].items()) {
-                _locations[pair.value().get<int64_t>()] = pair.key();
+                auto id = pair.value().get<int64_t>();
+                _locations[id] = pair.key();
+                gameLocations[id] = pair.key();
             }
         }
     }
@@ -1545,6 +1611,8 @@ private:
     std::list<NetworkPlayer> _players;
     std::map<int64_t, std::string> _locations;
     std::map<int64_t, std::string> _items;
+    std::map<std::string, std::map<int64_t, std::string>> _gameLocations;
+    std::map<std::string, std::map<int64_t, std::string>> _gameItems;
     bool _dataPackageValid = false;
     json _dataPackage;
     double _serverConnectTime = 0;
@@ -1559,6 +1627,7 @@ private:
 #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
     bool _dataPackageStoreAllocated = false;
 #endif
+    std::map<int, NetworkSlot> _slotInfo;
 
     const json _packetSchemaJson = R"({
         "type": "array",
