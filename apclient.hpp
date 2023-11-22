@@ -123,11 +123,19 @@ public:
         if (!uri.empty()) {
             auto p = uri.find("://");
             if (p == uri.npos) {
-                #if WSWRAP_VERSION >= 10100 || defined __EMSCRIPTEN__
+            #if WSWRAP_VERSION >= 10100 || defined __EMSCRIPTEN__
                 _tryWSS = true;
-                #endif
+                #ifdef AP_PREFER_UNENCRYPTED
                 _uri = "ws://" + uri;
                 p = 2;
+                #else
+                _uri = "wss://" + uri;
+                p = 3;
+                #endif
+            #else // no ssl support -> ws://
+                _uri = "ws://" + uri;
+                p = 2;
+            #endif
             } else {
                 _uri = uri;
             }
