@@ -36,91 +36,149 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef NO_STD_FILESYSTEM
 #define NO_STD_FILESYSTEM
 #endif
-#if defined WIN32 || defined _WIN32
-// Windows uses UC2 filenames, which is not implemented below.
-#error "Dummy filesystem not supported on Windows. Please use -std=c++17, write a custom DataPackageStore, or open a PR"
-#endif
 #include <string>
 #include <errno.h>
 #endif
 
-
 class DefaultDataPackageStore : public APDataPackageStore
 {
+public:
+#if defined WIN32 || defined _WIN32
+    typedef std::wstring TString;
+    typedef wchar_t TCHAR;
+    static const wchar_t CSLASH = L'/';
+#else
+    typedef std::string TString;
+    typedef char TCHAR;
+    static const char CSLASH = '/';
+#endif
 private:
+
     typedef nlohmann::json json;
 #ifndef NO_STD_FILESYSTEM
     typedef std::filesystem::path path;
 #else
     class path final
     {
-        std::string s;
+        TString s;
 
     public:
         path() = default;
 
+        path(const TString& s)
+            : s(s)
+        {
+        }
+
+        path(const TCHAR* s)
+            : s(s)
+        {
+        }
+
+#if defined WIN32 || defined _WIN32
+        // assume UTF8
         path(const std::string& s)
-            : s(s)
         {
+            // NOTE: we assume utf8
+            if (s.empty())
+                return;
+
+            auto sz = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
+            if (sz < 1)
+                return;
+
+            wchar_t* wstr = new wchar_t[sz];
+            memset(wstr, 0, sz * sizeof(*wstr));
+            if (MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, wstr, sz) != sz)
+                goto cleanup;
+
+            this->s = wstr;
+cleanup:
+            delete[] wstr;
         }
 
-        path(const char* s)
-            : s(s)
+        std::string string() const
         {
-        }
+            std::string res;
+            auto sz = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
+            if (sz < 1)
+                return res;
+            char* tmp = new char[sz];
+            memset(tmp, 0, sz * sizeof(*tmp));
+            if (WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, tmp, sz, NULL, NULL) != sz)
+                goto done;
 
+            res = tmp;
+done:
+            delete[] tmp;
+            return res;
+        }
+#else
         const std::string& string() const
         {
             return s;
         }
+#endif
 
-        const char* c_str() const
+        const TCHAR* c_str() const
         {
             return s.c_str();
         }
 
+        bool empty() const
+        {
+            return s.empty();
+        }
+
         path parent_path() const
         {
-            if (s == "/")
-                return "/";
-            auto p = s.rfind("/");
+            if (s == slash())
+                return slash();
+            auto p = s.rfind(slash());
             if (p == s.npos)
-                return "";
+                return {};
             return s.substr(0, p);
         }
 
-        path operator/(const std::string& other) const
+        path operator/(const TString& other) const
         {
-            return s + "/" + other;
+            return s + slash() + other;
         }
 
-        bool operator==(const std::string& other) const
+#if defined WIN32 || defined _WIN32
+        path operator/(const std::string& other) const
+        {
+            return *this / path(other).s;
+        }
+#endif
+
+        bool operator==(const TString& other) const
         {
             return s == other;
+        }
+
+        bool operator!=(const path& other) const
+        {
+            return s != other.s;
+        }
+
+        static const TCHAR* slash()
+        {
+            static const TCHAR val[] = {CSLASH, 0};
+            return val;
         }
     };
 
     bool create_directories(const path& d, std::error_code& ec) noexcept
     {
-        size_t len = d.string().length();
-        if (len >= 256) {
-            ec = {ENOMEM, std::generic_category()};
+        auto parent = d.parent_path();
+        if (!parent.empty() && parent != d && !create_directories(parent, ec) && ec.value())
             return false;
-        }
-        char tmp[256];
-        char *p = NULL;
-        memcpy(tmp, d.c_str(), len + 1);
-
-        if (tmp[len - 1] == '/')
-            tmp[len - 1] = 0;
-        for (p = tmp + 1; *p; p++) {
-            if (*p == '/') {
-                *p = 0;
-                mkdir(tmp, S_IRWXU);
-                *p = '/';
-            }
-        }
-        mkdir(tmp, S_IRWXU);
+#if defined WIN32 || defined _WIN32
+        _wmkdir(d.c_str());
+#else
+        mkdir(d.c_str(), S_IRWXU);
+#endif
         if (errno != EEXIST)
             ec = {errno, std::generic_category()};
         return !!errno;
@@ -144,7 +202,7 @@ private:
         std::copy_if(checksum.begin(), checksum.end(), std::back_inserter(safe_checksum), sanitize);
 
         if (safe_game.empty() || safe_checksum != checksum)
-            return ""; // invalid
+            return {}; // invalid
         if (checksum.empty())
             return _path / (safe_game + ".json");
         return (_path / safe_game) / (safe_checksum + ".json");
@@ -204,11 +262,13 @@ public:
     virtual bool load(const std::string& game, const std::string& checksum, json& data) override
     {
         auto p = get_path(game, checksum);
-        if (p == "")
+        if (p.empty()) {
+            log("Could not determine datapackage cache location");
             return false;
+        }
         try {
 #ifdef NO_STD_FILESYSTEM
-            std::ifstream f(p.string(), std::ios::binary);
+            std::ifstream f(p.c_str(), std::ios::binary);
 #else
             std::ifstream f(p, std::ios::binary);
 #endif
@@ -238,17 +298,19 @@ public:
             p = get_path(game, "");
         else
             p = get_path(game, *it);
-        if (p == "")
+        if (p.empty())
             return false;
 
         std::error_code ec;
         create_directories(p.parent_path(), ec);
-        if (ec)
+        if (ec) {
+            log(("Could not create " + p.parent_path().string() + ": " + ec.message()).c_str());
             return false;
+        }
 
         try {
 #ifdef NO_STD_FILESYSTEM
-            std::ofstream f(p.string(), std::ios::binary);
+            std::ofstream f(p.c_str(), std::ios::binary);
 #else
             std::ofstream f(p, std::ios::binary);
 #endif
