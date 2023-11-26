@@ -23,13 +23,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <list>
 #include <set>
 #include <map>
-#if __cplusplus == 201703L || (defined __has_include && __has_include(<optional>))
+#if defined(_MSC_VER) && _MSC_VER < 1910 // older msvc doesn't like the has_include
+#define NO_OPTIONAL
+#else
+#if (defined __cplusplus && __cplusplus >= 201703L) || (defined __has_include && __has_include(<optional>))
 #include <optional>
 #elif defined __has_include && __has_include(<experimental/optional>)
 #include <experimental/optional>
 #else
 #define NO_OPTIONAL
 #endif
+#endif
+
 #include <nlohmann/json.hpp>
 #include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
