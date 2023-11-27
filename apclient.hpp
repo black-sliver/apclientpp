@@ -98,9 +98,13 @@ protected:
 
 public:
     static constexpr int64_t INVALID_NAME_ID = std::numeric_limits<int64_t>::min();
+#if !defined _MSC_VER || _MSC_VER >= 1911
     static constexpr char DEFAULT_URI[] = "localhost:38281";
+#else
+    static const char DEFAULT_URI[]; // = "localhost:38281"; // assign this in implementation
+#endif
 
-    APClient(const std::string& uuid, const std::string& game, const std::string& uri = DEFAULT_URI,
+    APClient(const std::string& uuid, const std::string& game, const std::string& uri = "localhost:38281",
              const std::string& certStore="", APDataPackageStore* dataPackageStore = nullptr)
         : _dataPackageStore(dataPackageStore)
     {
@@ -264,13 +268,13 @@ public:
 
         static TextNode from_json(const json& j)
         {
-            return {
-                j.value("type", ""),
-                j.value("color", ""),
-                j.value("text", ""),
-                j.value("player", 0),
-                j.value("flags", 0U),
-            };
+            TextNode node;
+            node.type = j.value("type", "");
+            node.color = j.value("color", "");
+            node.text = j.value("text", "");
+            node.player = j.value("player", 0);
+            node.flags = j.value("flags", 0U);
+            return node;
         }
     };
 
@@ -432,13 +436,11 @@ public:
 
             it = command.find("item");
             if (it != command.end()) {
-                item = {
-                   it->value("item", (int64_t) 0),
-                   it->value("location", (int64_t) 0),
-                   it->value("player", 0),
-                   it->value("flags", 0U),
-                   -1
-                };
+                item.item = it->value("item", (int64_t) 0);
+                item.location = it->value("location", (int64_t) 0);
+                item.player = it->value("player", 0);
+                item.flags = it->value("flags", 0U);
+                item.index = -1;
                 args.item = &item;
             }
 
@@ -1377,27 +1379,27 @@ private:
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
                     int index = command["index"].get<int>();
-                    for (const auto& item: command["items"]) {
-                        items.push_back({
-                            item["item"].get<int64_t>(),
-                            item["location"].get<int64_t>(),
-                            item["player"].get<int>(),
-                            item.value("flags", 0U),
-                            index++,
-                        });
+                    for (const auto& j: command["items"]) {
+                        NetworkItem item;
+                        item.item = j["item"].get<int64_t>();
+                        item.location = j["location"].get<int64_t>();
+                        item.player = j["player"].get<int>();
+                        item.flags = j.value("flags", 0U);
+                        item.index = index++;
+                        items.push_back(item);
                     }
                     if (_hOnItemsReceived) _hOnItemsReceived(items);
                 }
                 else if (cmd == "LocationInfo") {
                     std::list<NetworkItem> items;
-                    for (const auto& item: command["locations"]) {
-                        items.push_back({
-                            item["item"].get<int64_t>(),
-                            item["location"].get<int64_t>(),
-                            item["player"].get<int>(),
-                            item.value("flags", 0U),
-                            -1
-                        });
+                    for (const auto& j: command["locations"]) {
+                        NetworkItem item;
+                        item.item = j["item"].get<int64_t>();
+                        item.location = j["location"].get<int64_t>();
+                        item.player = j["player"].get<int>();
+                        item.flags = j.value("flags", 0U);
+                        item.index = -1;
+                        items.push_back(item);
                     }
                     if (_hOnLocationInfo) _hOnLocationInfo(items);
                 }
