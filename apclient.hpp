@@ -1033,6 +1033,11 @@ public:
         return _state;
     }
 
+    bool has_password() const
+    {
+        return _hasPassword;
+    }
+
     const std::string& get_seed() const
     {
         return _seed;
@@ -1132,6 +1137,7 @@ public:
         delete _ws;
         _ws = nullptr;
         _state = State::DISCONNECTED;
+        _hasPassword = false;
     }
 
 private:
@@ -1210,6 +1216,7 @@ private:
                     _serverVersion = Version::from_json(command["version"]);
                     _seed = command["seed_name"];
                     _hintCostPercent = command.value("hint_cost", 0);
+                    _hasPassword = command.value("password", false);
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
 
@@ -1621,6 +1628,7 @@ private:
     ClientStatus _clientStatus = ClientStatus::UNKNOWN;
     std::string _seed;
     std::string _slot; // currently connected slot, if any
+    bool _hasPassword = false;
     int _team = -1;
     int _slotnr = -1;
     std::list<NetworkPlayer> _players;
