@@ -157,18 +157,18 @@ public:
             }
         }
 
-        #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
         if (!_dataPackageStore) {
-            _dataPackageStore = new DefaultDataPackageStore();
-            _dataPackageStoreAllocated = true;
-        }
+        #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
+            _autoDataPackageStore.reset(new DefaultDataPackageStore());
+            _dataPackageStore =_autoDataPackageStore.get();
         #else
-        const char* msg = "dataPackageStore is required if compiled with AP_NO_DEFAULT_DATA_PACKAGE_STORE";
-        fprintf(stderr, "APClient: %s!\n", msg);
-        #ifdef __cpp_exceptions
-        throw std::runtime_error(msg);
+            const char* msg = "dataPackageStore is required if compiled with AP_NO_DEFAULT_DATA_PACKAGE_STORE";
+            fprintf(stderr, "APClient: %s!\n", msg);
+            #ifdef __cpp_exceptions
+            throw std::runtime_error(msg);
+            #endif
         #endif
-        #endif
+        }
 
         _uuid = uuid;
         _game = game;
@@ -185,12 +185,6 @@ public:
 
     virtual ~APClient()
     {
-#ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
-        if (_dataPackageStoreAllocated)
-            delete _dataPackageStore;
-#endif
-        delete _ws;
-        _ws = nullptr;
     }
 
     enum class State {
@@ -1103,11 +1097,10 @@ public:
      */
     void poll()
     {
-        if (_ws && _state == State::DISCONNECTED) {
-            delete _ws;
-            _ws = nullptr;
-        }
-        if (_ws) _ws->poll();
+        if (_ws && _state == State::DISCONNECTED)
+            _ws.reset();
+        if (_ws)
+            _ws->poll();
         if (_state < State::SOCKET_CONNECTED) {
             auto t = now();
             if (t - _lastSocketConnect > _socketReconnectInterval || _reconnectNow) {
@@ -1134,8 +1127,7 @@ public:
         _hintCostPercent = 0;
         _hintPoints = 0;
         _players.clear();
-        delete _ws;
-        _ws = nullptr;
+        _ws.reset();
         _state = State::DISCONNECTED;
         _hasPassword = false;
     }
@@ -1499,7 +1491,7 @@ private:
     void connect_socket()
     {
         _reconnectNow = false;
-        delete _ws;
+        _ws.reset();
         if (_uri.empty()) {
             _ws = nullptr;
             _state = State::DISCONNECTED;
@@ -1508,7 +1500,7 @@ private:
         _state = State::SOCKET_CONNECTING;
 
         try {
-            _ws = new WS(_uri,
+            _ws.reset(new WS(_uri,
                     [this]() { onopen(); },
                     [this]() { onclose(); },
                     [this](const std::string& s) { onmessage(s); },
@@ -1520,7 +1512,7 @@ private:
 #if WSWRAP_VERSION >= 10100
                     , _certStore
 #endif
-            );
+            ));
         } catch (const std::exception& ex) {
             _ws = nullptr;
             if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
@@ -1599,7 +1591,7 @@ private:
     std::string _game;
     std::string _uuid;
     std::string _certStore;
-    WS* _ws = nullptr;
+    std::unique_ptr<WS> _ws;
     State _state = State::DISCONNECTED;
     bool _tryWSS = false;
 
@@ -1648,7 +1640,7 @@ private:
     std::set<int64_t> _missingLocations;
     APDataPackageStore* _dataPackageStore;
 #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
-    bool _dataPackageStoreAllocated = false;
+    std::unique_ptr<APDataPackageStore> _autoDataPackageStore;
 #endif
     std::map<int, NetworkSlot> _slotInfo;
 
