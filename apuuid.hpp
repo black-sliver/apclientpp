@@ -78,7 +78,7 @@ static std::string ap_get_uuid(const std::string& uuidFile)
             #endif
         }
         if (!uuidFile.empty() && (!f || n < 32)) {
-            fprintf(stderr, "Could not write persistant UUID!\n");
+            fprintf(stderr, "Could not write persistent UUID!\n");
         }
     }
     f = nullptr;
