@@ -85,6 +85,14 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
   VS2019, msvc, Windows
 * [Dark Souls III Archipelago client](https://github.com/Marechal-L/Dark-Souls-III-Archipelago-client) \
   VS2022, msvc, Windows
+* [ap-textclient](https://github.com/black-sliver/ap-textclient) \
+  ap-soeclient as text client
+* [lua-apclientpp](https://github.com/black-sliver/lua-apclientpp) \
+  Lua wrapper for apclientpp \
+  VS2015/VS2017/shell build scripts, msvc/mingw/gcc, Windows/Linux/macos
+* [gm-apclientpp](https://github.com/black-sliver/gm-apclientpp) \
+  Game Maker wrapper for apclientpp \
+  VS2015, msvc, Windows
 
 
 ## SSL Support
