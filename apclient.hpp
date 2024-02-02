@@ -18,6 +18,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #endif
 
 
+//#define APCLIENT_DEBUG // to get debug output
+//#define AP_NO_DEFAULT_DATA_PACKAGE_STORE // to disable auto-construction of data package store
+//#define AP_NO_SCHEMA // to disable schema checking
+//#define AP_PREFER_UNENCRYPTED // try unencrypted connection first, then encrypted
+
+
 #include <wswrap.hpp>
 #include <string>
 #include <list>
@@ -36,10 +42,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #endif
 
 #include <nlohmann/json.hpp>
+#ifndef AP_NO_SCHEMA
 #include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
+#endif
 #include <chrono>
 #include <stdint.h>
 #include <inttypes.h>
@@ -50,10 +58,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef WSWRAP_VERSION
 #define WSWRAP_VERSION 10000 // 1.0 did not have this define
 #endif
-
-
-//#define APCLIENT_DEBUG // to get debug output
-//#define AP_NO_DEFAULT_DATA_PACKAGE_STORE // to disable auto-construction of data package store
 
 
 /**
@@ -89,8 +93,10 @@ public:
 class APClient {
 protected:
     typedef nlohmann::json json;
-    typedef valijson::adapters::NlohmannJsonAdapter JsonSchemaAdapter;
     typedef wswrap::WS WS;
+#ifndef AP_NO_SCHEMA
+    typedef valijson::adapters::NlohmannJsonAdapter JsonSchemaAdapter;
+#endif
 
     static int64_t stoi64(const std::string& s) {
         return std::stoll(s);
@@ -176,10 +182,14 @@ public:
             {"version", -1},
             {"games", json(json::value_t::object)},
         };
+
+        #ifndef AP_NO_SCHEMA
         valijson::SchemaParser parser;
         parser.populateSchema(JsonSchemaAdapter(_packetSchemaJson), _packetSchema);
         parser.populateSchema(JsonSchemaAdapter(_retrievedSchemaJson), _commandSchemas["Retrieved"]);
         parser.populateSchema(JsonSchemaAdapter(_setReplySchemaJson), _commandSchemas["SetReply"]);
+        #endif
+
         connect_socket();
     }
 
@@ -1182,13 +1192,16 @@ private:
     {
         try {
             json packet = json::parse(s);
+#ifndef AP_NO_SCHEMA
             valijson::Validator validator;
             JsonSchemaAdapter packetAdapter(packet);
             if (!validator.validate(_packetSchema, packetAdapter, nullptr)) {
                 throw std::runtime_error("Packet validation failed");
             }
+#endif
             for (auto& command: packet) {
                 std::string cmd = command["cmd"];
+#ifndef AP_NO_SCHEMA
                 JsonSchemaAdapter commandAdapter(command);
                 auto schemaIt = _commandSchemas.find(cmd);
                 if (schemaIt != _commandSchemas.end()) {
@@ -1196,6 +1209,7 @@ private:
                         throw std::runtime_error("Command validation failed");
                     }
                 }
+#endif
 #ifdef APCLIENT_DEBUG
                 const size_t maxDumpLen = 512;
                 auto dump = command.dump().substr(0, maxDumpLen);
@@ -1644,6 +1658,7 @@ private:
 #endif
     std::map<int, NetworkSlot> _slotInfo;
 
+#ifndef AP_NO_SCHEMA
     const json _packetSchemaJson = R"({
         "type": "array",
         "items": {
@@ -1671,6 +1686,7 @@ private:
         "required": [ "key", "value" ]
     })"_json;
     std::map<std::string, valijson::Schema> _commandSchemas;
+#endif
 };
 
 #endif // _APCLIENT_HPP
