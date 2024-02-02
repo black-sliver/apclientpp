@@ -18,6 +18,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #endif
 
 
+//#define APCLIENT_DEBUG // to get debug output
+//#define AP_NO_DEFAULT_DATA_PACKAGE_STORE // to disable auto-construction of data package store
+//#define AP_NO_SCHEMA // to disable schema checking
+//#define AP_PREFER_UNENCRYPTED // try unencrypted connection first, then encrypted
+
+
 #include <wswrap.hpp>
 #include <string>
 #include <list>
@@ -36,10 +42,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #endif
 
 #include <nlohmann/json.hpp>
+#ifndef AP_NO_SCHEMA
 #include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
+#endif
 #include <chrono>
 #include <stdint.h>
 #include <inttypes.h>
@@ -50,10 +58,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef WSWRAP_VERSION
 #define WSWRAP_VERSION 10000 // 1.0 did not have this define
 #endif
-
-
-//#define APCLIENT_DEBUG // to get debug output
-//#define AP_NO_DEFAULT_DATA_PACKAGE_STORE // to disable auto-construction of data package store
 
 
 /**
@@ -89,8 +93,10 @@ public:
 class APClient {
 protected:
     typedef nlohmann::json json;
-    typedef valijson::adapters::NlohmannJsonAdapter JsonSchemaAdapter;
     typedef wswrap::WS WS;
+#ifndef AP_NO_SCHEMA
+    typedef valijson::adapters::NlohmannJsonAdapter JsonSchemaAdapter;
+#endif
 
     static int64_t stoi64(const std::string& s) {
         return std::stoll(s);
@@ -157,18 +163,18 @@ public:
             }
         }
 
-        #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
         if (!_dataPackageStore) {
-            _dataPackageStore = new DefaultDataPackageStore();
-            _dataPackageStoreAllocated = true;
-        }
+        #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
+            _autoDataPackageStore.reset(new DefaultDataPackageStore());
+            _dataPackageStore =_autoDataPackageStore.get();
         #else
-        const char* msg = "dataPackageStore is required if compiled with AP_NO_DEFAULT_DATA_PACKAGE_STORE";
-        fprintf(stderr, "APClient: %s!\n", msg);
-        #ifdef __cpp_exceptions
-        throw std::runtime_error(msg);
+            const char* msg = "dataPackageStore is required if compiled with AP_NO_DEFAULT_DATA_PACKAGE_STORE";
+            fprintf(stderr, "APClient: %s!\n", msg);
+            #ifdef __cpp_exceptions
+            throw std::runtime_error(msg);
+            #endif
         #endif
-        #endif
+        }
 
         _uuid = uuid;
         _game = game;
@@ -176,21 +182,19 @@ public:
             {"version", -1},
             {"games", json(json::value_t::object)},
         };
+
+        #ifndef AP_NO_SCHEMA
         valijson::SchemaParser parser;
         parser.populateSchema(JsonSchemaAdapter(_packetSchemaJson), _packetSchema);
         parser.populateSchema(JsonSchemaAdapter(_retrievedSchemaJson), _commandSchemas["Retrieved"]);
         parser.populateSchema(JsonSchemaAdapter(_setReplySchemaJson), _commandSchemas["SetReply"]);
+        #endif
+
         connect_socket();
     }
 
     virtual ~APClient()
     {
-#ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
-        if (_dataPackageStoreAllocated)
-            delete _dataPackageStore;
-#endif
-        delete _ws;
-        _ws = nullptr;
     }
 
     enum class State {
@@ -1103,11 +1107,10 @@ public:
      */
     void poll()
     {
-        if (_ws && _state == State::DISCONNECTED) {
-            delete _ws;
-            _ws = nullptr;
-        }
-        if (_ws) _ws->poll();
+        if (_ws && _state == State::DISCONNECTED)
+            _ws.reset();
+        if (_ws)
+            _ws->poll();
         if (_state < State::SOCKET_CONNECTED) {
             auto t = now();
             if (t - _lastSocketConnect > _socketReconnectInterval || _reconnectNow) {
@@ -1134,8 +1137,7 @@ public:
         _hintCostPercent = 0;
         _hintPoints = 0;
         _players.clear();
-        delete _ws;
-        _ws = nullptr;
+        _ws.reset();
         _state = State::DISCONNECTED;
         _hasPassword = false;
     }
@@ -1190,13 +1192,16 @@ private:
     {
         try {
             json packet = json::parse(s);
+#ifndef AP_NO_SCHEMA
             valijson::Validator validator;
             JsonSchemaAdapter packetAdapter(packet);
             if (!validator.validate(_packetSchema, packetAdapter, nullptr)) {
                 throw std::runtime_error("Packet validation failed");
             }
+#endif
             for (auto& command: packet) {
                 std::string cmd = command["cmd"];
+#ifndef AP_NO_SCHEMA
                 JsonSchemaAdapter commandAdapter(command);
                 auto schemaIt = _commandSchemas.find(cmd);
                 if (schemaIt != _commandSchemas.end()) {
@@ -1204,6 +1209,7 @@ private:
                         throw std::runtime_error("Command validation failed");
                     }
                 }
+#endif
 #ifdef APCLIENT_DEBUG
                 const size_t maxDumpLen = 512;
                 auto dump = command.dump().substr(0, maxDumpLen);
@@ -1499,7 +1505,7 @@ private:
     void connect_socket()
     {
         _reconnectNow = false;
-        delete _ws;
+        _ws.reset();
         if (_uri.empty()) {
             _ws = nullptr;
             _state = State::DISCONNECTED;
@@ -1508,7 +1514,7 @@ private:
         _state = State::SOCKET_CONNECTING;
 
         try {
-            _ws = new WS(_uri,
+            _ws.reset(new WS(_uri,
                     [this]() { onopen(); },
                     [this]() { onclose(); },
                     [this](const std::string& s) { onmessage(s); },
@@ -1520,7 +1526,7 @@ private:
 #if WSWRAP_VERSION >= 10100
                     , _certStore
 #endif
-            );
+            ));
         } catch (const std::exception& ex) {
             _ws = nullptr;
             if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
@@ -1599,7 +1605,7 @@ private:
     std::string _game;
     std::string _uuid;
     std::string _certStore;
-    WS* _ws = nullptr;
+    std::unique_ptr<WS> _ws;
     State _state = State::DISCONNECTED;
     bool _tryWSS = false;
 
@@ -1648,10 +1654,11 @@ private:
     std::set<int64_t> _missingLocations;
     APDataPackageStore* _dataPackageStore;
 #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
-    bool _dataPackageStoreAllocated = false;
+    std::unique_ptr<APDataPackageStore> _autoDataPackageStore;
 #endif
     std::map<int, NetworkSlot> _slotInfo;
 
+#ifndef AP_NO_SCHEMA
     const json _packetSchemaJson = R"({
         "type": "array",
         "items": {
@@ -1679,6 +1686,7 @@ private:
         "required": [ "key", "value" ]
     })"_json;
     std::map<std::string, valijson::Schema> _commandSchemas;
+#endif
 };
 
 #endif // _APCLIENT_HPP
