@@ -613,6 +613,12 @@ public:
         return BLANK;
     }
 
+    /// Get the currently played game name or an empty string
+    const std::string& get_game()
+    {
+        return get_player_game(get_player_number());
+    }
+
     std::string get_location_name(int64_t code, const std::string& game)
     {
         if (game.empty()) { // old code path ("global" ids)
