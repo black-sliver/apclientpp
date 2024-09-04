@@ -791,7 +791,7 @@ public:
     }
 
     bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
-                     const std::list<std::string>& tags = {}, const Version& ver = {0, 2, 6})
+                     const std::list<std::string>& tags = {}, const Version& ver = {0, 4, 9})
     {
         if (_state < State::SOCKET_CONNECTED)
             return false;
