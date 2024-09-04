@@ -675,7 +675,7 @@ public:
         return BLANK;
     }
 
-    std::string get_location_name(int64_t code, const std::string& game="")
+    std::string get_location_name(int64_t code, const std::string& game)
     {
         if (game.empty()) { // old code path ("global" ids)
             auto it = _locations.find(code);
@@ -693,6 +693,12 @@ public:
         return "Unknown";
     }
 
+    [[deprecated("Use the overload that explicitly takes game argument")]]
+    std::string get_location_name(int64_t code)
+    {
+        return get_location_name(code, "");
+    }
+
     /*Usage is not recommended
     * Return the id associated with the location name
     * Return APClient::INVALID_NAME_ID when undefined*/
@@ -707,7 +713,7 @@ public:
         return INVALID_NAME_ID;
     }
 
-    std::string get_item_name(int64_t code, const std::string& game="")
+    std::string get_item_name(int64_t code, const std::string& game)
     {
         if (game.empty()) { // old code path ("global" ids)
             auto it = _items.find(code);
@@ -723,6 +729,12 @@ public:
             }
         }
         return "Unknown";
+    }
+
+    [[deprecated("Use the overload that explicitly takes game argument")]]
+    std::string get_item_name(int64_t code)
+    {
+        return get_item_name(code, "");
     }
 
     /*Usage is not recommended
