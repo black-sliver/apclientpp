@@ -1364,9 +1364,10 @@ private:
                     std::list<int64_t> checkedLocations;
                     for (const auto& j: command["checked_locations"]) {
                         int64_t location = j.get<int64_t>();
-                        checkedLocations.push_back(location);
-                        _checkedLocations.insert(location);
-                        _missingLocations.erase(location);
+                        if (_checkedLocations.emplace(location).second) {
+                            checkedLocations.push_back(location);
+                            _missingLocations.erase(location);
+                        }
                     }
                     if (_hOnLocationChecked && !checkedLocations.empty())
                         _hOnLocationChecked(checkedLocations);
