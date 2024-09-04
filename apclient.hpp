@@ -569,68 +569,6 @@ public:
         });
     }
 
-    [[deprecated("Data package is handled through APDataPackageStore now")]]
-    void set_data_package(const json& data)
-    {
-        // only apply from cache if not updated and it looks valid
-        if (!_dataPackageValid && data.find("games") != data.end())
-            _set_data_package(data);
-    }
-
-    [[deprecated("Data package is handled through APDataPackageStore now")]]
-    bool set_data_package_from_file(const std::string& path)
-    {
-        FILE* f;
-
-        if (!_dataPackageValid)
-            return true;
-
-#ifdef _MSC_VER
-        if ((fopen_s(&f, path.c_str(), "rb")) != 0)
-#else
-        if ((f = fopen(path.c_str(), "rb")) == NULL)
-#endif
-            return false;
-        char* buf = nullptr;
-        size_t len = (size_t)0;
-        if ((0 == fseek(f, 0, SEEK_END)) &&
-            ((len = ftell(f)) > 0) &&
-            ((buf = (char*)malloc(len+1))) &&
-            (0 == fseek(f, 0, SEEK_SET)) &&
-            (len == fread(buf, 1, len, f)))
-        {
-            buf[len] = 0;
-            try {
-                auto data = json::parse(buf);
-                if (data.find("games") != data.end())
-                    _set_data_package(data);
-            } catch (const std::exception&) {
-                free(buf);
-                fclose(f);
-                throw;
-            }
-        }
-        free(buf);
-        fclose(f);
-        return true;
-    }
-
-    [[deprecated("Data package is handled through APDataPackageStore now")]]
-    bool save_data_package(const std::string& path)
-    {
-        FILE* f;
-#ifdef _MSC_VER
-        if ((fopen_s(&f, path.c_str(), "wb")) != 0)
-#else
-        if ((f = fopen(path.c_str(), "wb")) == NULL)
-#endif
-            return false;
-        std::string s = _dataPackage.dump();
-        fwrite(s.c_str(), 1, s.length(), f);
-        fclose(f);
-        return true;
-    }
-
     const std::set<int64_t> get_checked_locations() const
     {
         return _checkedLocations;
@@ -693,12 +631,6 @@ public:
         return "Unknown";
     }
 
-    [[deprecated("Use the overload that explicitly takes game argument")]]
-    std::string get_location_name(int64_t code)
-    {
-        return get_location_name(code, "");
-    }
-
     /*Usage is not recommended
     * Return the id associated with the location name
     * Return APClient::INVALID_NAME_ID when undefined*/
@@ -729,12 +661,6 @@ public:
             }
         }
         return "Unknown";
-    }
-
-    [[deprecated("Use the overload that explicitly takes game argument")]]
-    std::string get_item_name(int64_t code)
-    {
-        return get_item_name(code, "");
     }
 
     /*Usage is not recommended
