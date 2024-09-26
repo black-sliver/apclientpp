@@ -385,6 +385,11 @@ public:
         _hOnRoomInfo = f;
     }
 
+    void set_room_update_handler(std::function<void(void)> f)
+    {
+        _hOnRoomUpdate = f;
+    }
+
     void set_items_received_handler(std::function<void(const std::list<NetworkItem>&)> f)
     {
         _hOnItemsReceived = f;
@@ -569,68 +574,6 @@ public:
         });
     }
 
-    [[deprecated("Data package is handled through APDataPackageStore now")]]
-    void set_data_package(const json& data)
-    {
-        // only apply from cache if not updated and it looks valid
-        if (!_dataPackageValid && data.find("games") != data.end())
-            _set_data_package(data);
-    }
-
-    [[deprecated("Data package is handled through APDataPackageStore now")]]
-    bool set_data_package_from_file(const std::string& path)
-    {
-        FILE* f;
-
-        if (!_dataPackageValid)
-            return true;
-
-#ifdef _MSC_VER
-        if ((fopen_s(&f, path.c_str(), "rb")) != 0)
-#else
-        if ((f = fopen(path.c_str(), "rb")) == NULL)
-#endif
-            return false;
-        char* buf = nullptr;
-        size_t len = (size_t)0;
-        if ((0 == fseek(f, 0, SEEK_END)) &&
-            ((len = ftell(f)) > 0) &&
-            ((buf = (char*)malloc(len+1))) &&
-            (0 == fseek(f, 0, SEEK_SET)) &&
-            (len == fread(buf, 1, len, f)))
-        {
-            buf[len] = 0;
-            try {
-                auto data = json::parse(buf);
-                if (data.find("games") != data.end())
-                    _set_data_package(data);
-            } catch (const std::exception&) {
-                free(buf);
-                fclose(f);
-                throw;
-            }
-        }
-        free(buf);
-        fclose(f);
-        return true;
-    }
-
-    [[deprecated("Data package is handled through APDataPackageStore now")]]
-    bool save_data_package(const std::string& path)
-    {
-        FILE* f;
-#ifdef _MSC_VER
-        if ((fopen_s(&f, path.c_str(), "wb")) != 0)
-#else
-        if ((f = fopen(path.c_str(), "wb")) == NULL)
-#endif
-            return false;
-        std::string s = _dataPackage.dump();
-        fwrite(s.c_str(), 1, s.length(), f);
-        fclose(f);
-        return true;
-    }
-
     const std::set<int64_t> get_checked_locations() const
     {
         return _checkedLocations;
@@ -675,6 +618,12 @@ public:
         return BLANK;
     }
 
+    /// Get the currently played game name or an empty string
+    const std::string& get_game()
+    {
+        return get_player_game(get_player_number());
+    }
+
     std::string get_location_name(int64_t code, const std::string& game)
     {
         if (game.empty()) { // old code path ("global" ids)
@@ -691,12 +640,6 @@ public:
             }
         }
         return "Unknown";
-    }
-
-    [[deprecated("Use the overload that explicitly takes game argument")]]
-    std::string get_location_name(int64_t code)
-    {
-        return get_location_name(code, "");
     }
 
     /*Usage is not recommended
@@ -729,12 +672,6 @@ public:
             }
         }
         return "Unknown";
-    }
-
-    [[deprecated("Use the overload that explicitly takes game argument")]]
-    std::string get_item_name(int64_t code)
-    {
-        return get_item_name(code, "");
     }
 
     /*Usage is not recommended
@@ -859,7 +796,7 @@ public:
     }
 
     bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
-                     const std::list<std::string>& tags = {}, const Version& ver = {0, 2, 6})
+                     const std::list<std::string>& tags = {}, const Version& ver = {0, 4, 9})
     {
         if (_state < State::SOCKET_CONNECTED)
             return false;
@@ -1432,9 +1369,10 @@ private:
                     std::list<int64_t> checkedLocations;
                     for (const auto& j: command["checked_locations"]) {
                         int64_t location = j.get<int64_t>();
-                        checkedLocations.push_back(location);
-                        _checkedLocations.insert(location);
-                        _missingLocations.erase(location);
+                        if (_checkedLocations.emplace(location).second) {
+                            checkedLocations.push_back(location);
+                            _missingLocations.erase(location);
+                        }
                     }
                     if (_hOnLocationChecked && !checkedLocations.empty())
                         _hOnLocationChecked(checkedLocations);
@@ -1451,6 +1389,8 @@ private:
                             });
                         }
                     }
+                    if (_hOnRoomUpdate)
+                        _hOnRoomUpdate();
                 }
                 else if (cmd == "DataPackage") {
                     auto data = _dataPackage;
@@ -1628,6 +1568,7 @@ private:
     std::function<void(void)> _hOnSlotDisconnected = nullptr;
     std::function<void(const std::list<std::string>&)> _hOnSlotRefused = nullptr;
     std::function<void(void)> _hOnRoomInfo = nullptr;
+    std::function<void(void)> _hOnRoomUpdate = nullptr;
     std::function<void(const std::list<NetworkItem>&)> _hOnItemsReceived = nullptr;
     std::function<void(const std::list<NetworkItem>&)> _hOnLocationInfo = nullptr;
     std::function<void(const json&)> _hOnDataPackageChanged = nullptr;
