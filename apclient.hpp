@@ -385,6 +385,11 @@ public:
         _hOnRoomInfo = f;
     }
 
+    void set_room_update_handler(std::function<void(void)> f)
+    {
+        _hOnRoomUpdate = f;
+    }
+
     void set_items_received_handler(std::function<void(const std::list<NetworkItem>&)> f)
     {
         _hOnItemsReceived = f;
@@ -1384,6 +1389,8 @@ private:
                             });
                         }
                     }
+                    if (_hOnRoomUpdate)
+                        _hOnRoomUpdate();
                 }
                 else if (cmd == "DataPackage") {
                     auto data = _dataPackage;
@@ -1561,6 +1568,7 @@ private:
     std::function<void(void)> _hOnSlotDisconnected = nullptr;
     std::function<void(const std::list<std::string>&)> _hOnSlotRefused = nullptr;
     std::function<void(void)> _hOnRoomInfo = nullptr;
+    std::function<void(void)> _hOnRoomUpdate = nullptr;
     std::function<void(const std::list<NetworkItem>&)> _hOnItemsReceived = nullptr;
     std::function<void(const std::list<NetworkItem>&)> _hOnLocationInfo = nullptr;
     std::function<void(const json&)> _hOnDataPackageChanged = nullptr;
