@@ -37,7 +37,7 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
   * use `Bounce` to send a bounce (deathlink, ...)
   * use `Get`, `Set` and `SetNotify` to access data storage api,
     see [Archipelago network protocol](https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/network%20protocol.md#get)
-  * by default we now use the shared data package cache in %LocalAppData%/Archipelago/Cache or ~/.cache/Archipelago.
+  * by default, we now use the shared data package cache in %LocalAppData%/Archipelago/Cache or ~/.cache/Archipelago.
     This can be changed by passing a custom APDataPackageStore into APClient.
 * when upgrading from 0.3.8 or older
   * remove calls to `save_data_package` and don't save data package in `set_data_package_changed_handler`
@@ -66,19 +66,29 @@ Use
 * `AP_PREFER_UNENCRYPTED` try unencrypted connection first. Only useful for testing.
 * `WSWRAP_SEND_EXCEPTIONS` to get exceptions when a send fails.
 * `WSWRAP_NO_SSL` to disable SSL support. Only recommended for testing.
+* `WSWRAP_NO_COMPRESSION` to disable compression. Only recommended for testing.
 
 
 ## When using Visual Studio for building
 
 * follow steps mentioned above
 * Set up Additional Include Directories for the dependencies
-  * project properties -> C/C++ -> General -> Additional Include Directories
+  * Project Properties -> C/C++ -> General -> Additional Include Directories
     * Add subprojects\asio\include
     * Add subprojects\websocketpp
     * Add subprojects\wswrap\include
     * Add subprojects\json\include
     * Add subprojects\valijson\include
       (unless disabled, see [Build Configuration](#build-configuration))
+    * Add openssl and zlib include directories if required (SSL and compression support)
+* Set up Additional Link Libraries for openssl and zlib
+  * Optional: Configuration Properties -> Linker -> General -> Additional Library Directories
+    * Add folder where `libcrypto_*.lib` and `libssl_*.lib` are (for SSL support)
+    * Add folder where `libz.lib` is (for compression support)
+  * Configuration Properties -> Linker -> Input -> Additional Dependencies
+    * Add `libcrypto_*.lib` and `libssl_*.lib` (for SSL support)
+    * Add `libz.lib` (for compression support)
+  * Alternatively use `#pragma comment(lib, "lib_name")` in any cpp file if Library Directories are set correctly
 * Add `/Zc:__cplusplus` to the command line
   * project properties -> C/C++ -> Command Line -> Additional Options
 * Add `_WIN32_WINNT=0x0600` (or higher) to Preprocessor Definitions
@@ -125,6 +135,13 @@ To add SSL/wss support on desktop, the following steps are required:
   * load the cert store by passing the path as 4th argument to APClient's constructor
 * apclient will try to load system certs, but this should only be used for testing:
   outdated Windows has outdated certs, macos/Linux without OpenSSL or with a different version won't find any certs
+
+
+## Compression Support
+
+To enable "permessage-deflate" compression support on desktop, update wswrap to 1.03.00 or newer and link with libz.
+
+Context takeover is not supported.
 
 
 ## Callbacks
