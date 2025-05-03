@@ -326,6 +326,9 @@ public:
 
         static Version from_json(const nlohmann::json& j)
         {
+            if (j.is_null()) {
+                return {0, 0, 0};
+            }
             return {
                 j.value("major", 0),
                 j.value("minor", 0),
@@ -1079,6 +1082,18 @@ public:
         return _serverConnectTime + td.count();
     }
 
+    /// Get the version of the server currently connected to
+    Version get_server_version() const
+    {
+        return _serverVersion;
+    }
+
+    /// Get the version of AP that generated the game connected to
+    Version get_generator_version() const
+    {
+        return _generatorVersion;
+    }
+
     /**
      * Poll the network layer and dispatch callbacks.
      * This has to be called repeatedly (i.e. once per frame) while this object exists.
@@ -1151,6 +1166,7 @@ private:
         log("Server connected");
         _state = State::SOCKET_CONNECTED;
         _pendingDataPackageRequests = 0;
+        _serverVersion = _generatorVersion = Version{0, 0, 0};
         if (_hOnSocketConnected) _hOnSocketConnected();
         _socketReconnectInterval = 1500;
     }
@@ -1199,6 +1215,7 @@ private:
                     _localConnectTime = std::chrono::steady_clock::now();
                     _serverConnectTime = command["time"].get<double>();
                     _serverVersion = Version::from_json(command["version"]);
+                    _generatorVersion = Version::from_json(command["generator_version"]);
                     _seed = command["seed_name"];
                     _hintCostPercent = command.value("hint_cost", 0);
                     _hasPassword = command.value("password", false);
@@ -1636,6 +1653,7 @@ private:
     double _serverConnectTime = 0;
     std::chrono::steady_clock::time_point _localConnectTime;
     Version _serverVersion = {0,0,0};
+    Version _generatorVersion = {0,0,0};
     int _locationCount = 0;
     int _hintCostPercent = 0;
     int _hintPoints = 0;
