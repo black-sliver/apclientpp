@@ -653,9 +653,11 @@ public:
         return "Unknown";
     }
 
-    /*Usage is not recommended
-    * Return the id associated with the location name
-    * Return APClient::INVALID_NAME_ID when undefined*/
+    /**
+     * Usage is not recommended
+     * Return the id associated with the location name
+     * Return APClient::INVALID_NAME_ID when undefined
+     */
     int64_t get_location_id(const std::string& name) const
     {
         if (_dataPackage["games"].contains(_game)) {
@@ -685,9 +687,11 @@ public:
         return "Unknown";
     }
 
-    /*Usage is not recommended
-    * Return the id associated with the item name
-    * Return APClient::INVALID_NAME_ID when undefined*/
+    /**
+     * Usage is not recommended
+     * Return the id associated with the item name
+     * Return APClient::INVALID_NAME_ID when undefined
+     */
     int64_t get_item_id(const std::string& name) const
     {
         if (_dataPackage["games"].contains(_game)) {
