@@ -25,10 +25,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 #include <wswrap.hpp>
-#include <string>
 #include <list>
-#include <set>
 #include <map>
+#include <set>
+#include <string>
+#include <tuple>
 #if defined(_MSC_VER) && _MSC_VER < 1910 // older msvc doesn't like the has_include
 #define NO_OPTIONAL
 #else
@@ -810,6 +811,28 @@ public:
         return true;
     }
 
+    /**
+     * Sends UpdateHint to the server to update hint status/priority.
+     * Returns true if hint update was sent or queued.
+     */
+    bool UpdateHint(int player, int64_t location, HintStatus status)
+    {
+        if (_state == State::SLOT_CONNECTED) {
+            auto packet = json{{
+                {"cmd", "UpdateHint"},
+                {"player", player},
+                {"location", location},
+                {"status", status},
+            }};
+
+            debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+            _ws->send(packet.dump());
+        } else {
+            _updateHintQueue.emplace_back(player, location, status);
+        }
+        return true;
+    }
+
     bool StatusUpdate(ClientStatus status)
     {
         // returns true if status update was sent or queued
@@ -1143,6 +1166,7 @@ public:
     {
         _checkQueue.clear();
         _scoutQueues.clear();
+        _updateHintQueue.clear();
         _clientStatus = ClientStatus::UNKNOWN;
         _seed.clear();
         _slot.clear();
@@ -1406,6 +1430,11 @@ private:
                         }
                         _scoutQueues.clear();
                     }
+                    // send queued hint updates, if any
+                    auto hintUpdates = std::move(_updateHintQueue);
+                    for (auto& hintUpdate: hintUpdates) {
+                        UpdateHint(std::get<0>(hintUpdate), std::get<1>(hintUpdate), std::get<2>(hintUpdate));
+                    }
                 }
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
@@ -1660,6 +1689,7 @@ private:
     bool _reconnectNow = false;
     std::set<int64_t> _checkQueue;
     std::map<int, std::set<int64_t>> _scoutQueues;
+    std::vector<std::tuple<int, int64_t, HintStatus>> _updateHintQueue;
     ClientStatus _clientStatus = ClientStatus::UNKNOWN;
     std::string _seed;
     std::string _slot; // currently connected slot, if any
