@@ -59,6 +59,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define WSWRAP_VERSION 10000 // 1.0 did not have this define
 #endif
 
+#ifndef __EMSCRIPTEN__
+#if WSWRAP_VERSION < 10300
+#warning "Please update wswrap to enable compression! Archipelago will require compression in the future."
+#elif defined WSWRAP_NO_COMPRESSION
+#warning "Don't disable it in prod! Archipelago will require compression in the future."
+#endif
+#endif
+
 
 /**
  * Abstract data package storage handler.
