@@ -233,6 +233,14 @@ public:
         FLAG_TRAP = 4,
     };
 
+    enum HintStatus {
+        HINT_UNSPECIFIED = 0,  ///< The receiving player has not specified any status
+        HINT_NO_PRIORITY = 10, ///< The receiving player has specified that the item is unneeded
+        HINT_AVOID = 20,       ///< The receiving player has specified that the item is detrimental
+        HINT_PRIORITY = 30,    ///< The receiving player has specified that the item is needed
+        HINT_FOUND = 40,       ///< The location has been collected. Status cannot be changed once found.
+    };
+
     enum class SlotType : int {
         SPECTATOR = 0,
         PLAYER = 1,
@@ -277,6 +285,7 @@ public:
         std::string text;
         int player = 0;
         unsigned flags = FLAG_NONE;
+        unsigned hintStatus = HINT_UNSPECIFIED;
 
         static TextNode from_json(const json& j)
         {
@@ -286,6 +295,7 @@ public:
             node.text = j.value("text", "");
             node.player = j.value("player", 0);
             node.flags = j.value("flags", 0U);
+            node.hintStatus = j.value("hint_status", 0U);
             return node;
         }
     };
