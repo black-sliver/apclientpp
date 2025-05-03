@@ -41,8 +41,6 @@ C++ Archipelago multiworld randomizer client library. See [archipelago.gg](https
     This can be changed by passing a custom APDataPackageStore into APClient.
 * when upgrading from 0.3.8 or older
   * remove calls to `save_data_package` and don't save data package in `set_data_package_changed_handler`
-  * you can still use `set_data_package` or `set_data_package_from_file` during migration to make use of the old cache
-    (they are marked as deprecated and will go away in the next version)
 * see [Implementations](#implementations) for examples
 * see [Gotchas](#gotchas)
 
