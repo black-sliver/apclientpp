@@ -11,6 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define _APCLIENT_HPP
 
 
+#define APCLIENTPP_VERSION_INITIALIZER {0, 6, 0}
+
+
 #if defined _WSWRAP_HPP && !defined WSWRAP_SEND_EXCEPTIONS
 #warning "Can't set exception behavior. wswrap already included"
 #elif !defined WSWRAP_SEND_EXCEPTIONS
@@ -852,7 +855,7 @@ public:
     }
 
     bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
-                     const std::list<std::string>& tags = {}, const Version& ver = {0, 4, 9})
+                     const std::list<std::string>& tags = {}, const Version& ver = APCLIENTPP_VERSION_INITIALIZER)
     {
         if (_state < State::SOCKET_CONNECTED)
             return false;
