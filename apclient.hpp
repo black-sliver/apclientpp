@@ -742,6 +742,14 @@ public:
                 int64_t id = stoi64(node.text);
                 if (color.empty()) color = "blue";
                 text = get_location_name(id, get_player_game(node.player));
+            } else if (node.type == "hint_status") {
+                text = node.text;
+                if (node.hintStatus == HINT_FOUND) color = "green";
+                else if (node.hintStatus == HINT_UNSPECIFIED) color = "grey";
+                else if (node.hintStatus == HINT_NO_PRIORITY) color = "slateblue";
+                else if (node.hintStatus == HINT_AVOID) color = "salmon";
+                else if (node.hintStatus == HINT_PRIORITY) color = "plum";
+                else color = "red";  // unknown status -> red
             } else {
                 text = node.text;
             }
@@ -1597,6 +1605,8 @@ private:
         if (color == "plum") return "\x1b[38:5:219m";
         if (color == "slateblue") return "\x1b[38:5:62m";
         if (color == "salmon") return "\x1b[38:5:210m";
+        if (color == "gray") return "\x1b[90m";
+        if (color == "grey") return "\x1b[90m";
         return "\x1b[0m";
     }
 
