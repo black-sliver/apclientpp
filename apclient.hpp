@@ -873,24 +873,45 @@ public:
         return true;
     }
 
-    bool GetDataPackage(const std::list<std::string>& exclude = {}, const std::list<std::string>& include = {})
+    bool GetDataPackage(const std::list<std::string>& include)
     {
         if (_state < State::ROOM_INFO)
             return false;
 
-        auto packet = json{{
-            {"cmd", "GetDataPackage"},
-        }};
-
-        if (_serverVersion >= Version{0, 3, 2}) {
-            if (!include.empty()) packet[0]["games"] = include; // new since 0.3.2
-        } else {
-            if (!exclude.empty()) packet[0]["exclusions"] = exclude; // backward compatibility; deprecated in 0.3.2
+        if (_serverVersion < Version{0, 3, 2}) {
+            const char* msg = "GetDataPackage for AP before 0.3.2 is not supported anymore";
+            fprintf(stderr, "APClient: %s!\n", msg);
+#ifdef __cpp_exceptions
+            throw std::runtime_error(msg);
+#else
+            return false;
+#endif
         }
-        // TODO: drop support for "exclusions" 2023
 
-        debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
-        _ws->send(packet.dump());
+        // optimized data package fetching:
+        // fetch in multiple packets for better streaming / less blocking
+        // fetch in at least 2 steps if more than 1 game needs to be fetched
+        // prefer to fetch 2 games at once for better use of compression window
+        // if it's an odd number, the last fetch should be 1 game
+        size_t n = 0;
+        size_t count = include.size();
+        std::vector<std::string> games;
+        for (const auto& game: include) {
+            games.push_back(game);
+            n++;
+            if (count > 2 && n != count && (n % 2) != 0) {
+                continue;
+            }
+            auto packet = json{{
+                {"cmd", "GetDataPackage"},
+                {"games", games}, // since 0.3.2
+            }};
+            debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+            _ws->send(packet.dump());
+            _pendingDataPackageRequests++;
+            games.clear();
+        }
+
         return true;
     }
 
@@ -1129,6 +1150,7 @@ private:
         debug("onopen()");
         log("Server connected");
         _state = State::SOCKET_CONNECTED;
+        _pendingDataPackageRequests = 0;
         if (_hOnSocketConnected) _hOnSocketConnected();
         _socketReconnectInterval = 1500;
     }
@@ -1271,7 +1293,7 @@ private:
 
                     if (!exclude.empty())
                         _set_data_package(_dataPackage);  // apply loaded strings
-                    if (!_dataPackageValid) GetDataPackage(exclude, include);
+                    if (!_dataPackageValid) GetDataPackage(include);
                     else debug("Data package up to date");
                 }
                 else if (cmd == "ConnectionRefused") {
@@ -1412,8 +1434,13 @@ private:
                     data["version"] = command["data"].value<int>("version", -1); // -1 for backwards compatibility
                     _dataPackageValid = false;
                     _set_data_package(data);
-                    _dataPackageValid = true;
-                    if (_hOnDataPackageChanged) _hOnDataPackageChanged(_dataPackage);
+                    if (_pendingDataPackageRequests > 0) {
+                        _pendingDataPackageRequests--;
+                        if (_pendingDataPackageRequests == 0) {
+                            _dataPackageValid = true;
+                            if (_hOnDataPackageChanged) _hOnDataPackageChanged(_dataPackage);
+                        }
+                    }
                 }
                 else if (cmd == "Print") {
                     if (_hOnPrint) _hOnPrint(command["text"].get<std::string>());
@@ -1604,6 +1631,7 @@ private:
     std::map<std::string, std::map<int64_t, std::string>> _gameLocations;
     std::map<std::string, std::map<int64_t, std::string>> _gameItems;
     bool _dataPackageValid = false;
+    size_t _pendingDataPackageRequests = 0;
     json _dataPackage;
     double _serverConnectTime = 0;
     std::chrono::steady_clock::time_point _localConnectTime;
