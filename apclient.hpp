@@ -574,7 +574,7 @@ public:
 
     void set_retrieved_handler(std::function<void(const std::map<std::string,json>&)> f)
     {
-        set_retrieved_handler([f](const std::map<std::string,json>& keys, const json& message) {
+        set_retrieved_handler([f](const std::map<std::string, json>& keys, const json&) {
             if (!f)
                 return;
 
