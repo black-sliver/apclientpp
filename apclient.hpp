@@ -717,6 +717,18 @@ public:
         return INVALID_NAME_ID;
     }
 
+    bool slot_concerns_self(int slot) const
+    {
+        if (slot == _slotnr)
+            return true;
+        auto it = _slotInfo.find(slot);
+        if (it != _slotInfo.end()) {
+            const auto& members = it->second.members;
+            return std::find(members.begin(), members.end(), _slotnr) != members.end();
+        }
+        return false;
+    }
+
     std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt = RenderFormat::TEXT)
     {
         // TODO: implement RenderFormat::HTML
@@ -730,7 +742,7 @@ public:
             if (fmt != RenderFormat::TEXT) color = node.color;
             if (node.type == "player_id") {
                 int id = std::stoi(node.text);
-                if (color.empty() && id == _slotnr) color = "magenta";
+                if (color.empty() && slot_concerns_self(id)) color = "magenta";
                 else if (color.empty()) color = "yellow";
                 text = get_player_alias(id);
             } else if (node.type == "item_id") {
