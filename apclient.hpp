@@ -723,7 +723,7 @@ public:
             return true;
         auto it = _slotInfo.find(slot);
         if (it != _slotInfo.end()) {
-            std::list<int> members = it->second.members;
+            const auto& members = it->second.members;
             return std::find(members.begin(), members.end(), _slotnr) != members.end();
         }
         return false;
