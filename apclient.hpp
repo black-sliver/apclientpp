@@ -835,6 +835,10 @@ public:
 
     bool CreateHints(std::list<int64_t> locations, int target_player = -1,
                      HintStatus hint_status = static_cast<HintStatus>(INT_MIN)) {
+        if (_serverVersion < Version{ 0, 6, 3 }) {
+            return false;
+        }
+
         if (target_player == -1) {
             target_player = get_player_number();
         }
