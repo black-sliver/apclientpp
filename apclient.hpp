@@ -845,14 +845,14 @@ public:
 
         // returns true if hints were sent or queued
         if (_state == State::SLOT_CONNECTED) {
-            auto packet = json{ {
+            auto packet = json{{
                 {"cmd", "CreateHints"},
                 {"locations", locations},
                 {"player", target_player},
             }};
 
             if (hint_status != INT_MIN) {
-                packet["status"] = hint_status;
+                packet[0]["status"] = hint_status;
             }
 
             debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
