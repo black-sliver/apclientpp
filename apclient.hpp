@@ -861,6 +861,8 @@ public:
         else {
             _createHintsQueueByPlayerAndStatus[{target_player, hint_status}].insert(locations.begin(), locations.end());
         }
+
+        return true;
     }
 
     bool StatusUpdate(ClientStatus status)
