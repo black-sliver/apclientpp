@@ -833,6 +833,32 @@ public:
         return true;
     }
 
+    bool CreateHints(std::list<int64_t> locations, int target_player = -1,
+                     HintStatus hint_status = static_cast<HintStatus>(INT_MIN)) {
+        if (target_player == -1) {
+            target_player = get_player_number();
+        }
+
+        // returns true if hints were sent or queued
+        if (_state == State::SLOT_CONNECTED) {
+            auto packet = json{ {
+                {"cmd", "CreateHints"},
+                {"locations", locations},
+                {"player", target_player},
+            }};
+
+            if (hint_status != INT_MIN) {
+                packet["status"] = hint_status;
+            }
+
+            debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
+            _ws->send(packet.dump());
+        }
+        else {
+            _createHintsQueueByPlayerAndStatus[{target_player, hint_status}].insert(locations.begin(), locations.end());
+        }
+    }
+
     bool StatusUpdate(ClientStatus status)
     {
         // returns true if status update was sent or queued
@@ -1167,6 +1193,7 @@ public:
         _checkQueue.clear();
         _scoutQueues.clear();
         _updateHintQueue.clear();
+        _createHintsQueueByPlayerAndStatus.clear();
         _clientStatus = ClientStatus::UNKNOWN;
         _seed.clear();
         _slot.clear();
@@ -1435,6 +1462,19 @@ private:
                     for (auto& hintUpdate: hintUpdates) {
                         UpdateHint(std::get<0>(hintUpdate), std::get<1>(hintUpdate), std::get<2>(hintUpdate));
                     }
+                    // send queued hints if any
+                    if (!_createHintsQueueByPlayerAndStatus.empty()) {
+                        for (const auto& pair : _createHintsQueueByPlayerAndStatus) {
+                            if (!pair.second.empty()) {
+                                std::list<int64_t> queuedHints;
+                                for (int64_t location : pair.second) {
+                                    queuedHints.push_back(location);
+                                }
+                                CreateHints(queuedHints, pair.first.first, pair.first.second);
+                            }
+                        }
+                        _createHintsQueueByPlayerAndStatus.clear();
+                    }
                 }
                 else if (cmd == "ReceivedItems") {
                     std::list<NetworkItem> items;
@@ -1690,6 +1730,7 @@ private:
     std::set<int64_t> _checkQueue;
     std::map<int, std::set<int64_t>> _scoutQueues;
     std::vector<std::tuple<int, int64_t, HintStatus>> _updateHintQueue;
+    std::map<std::pair<int, HintStatus>, std::set<int64_t>> _createHintsQueueByPlayerAndStatus;
     ClientStatus _clientStatus = ClientStatus::UNKNOWN;
     std::string _seed;
     std::string _slot; // currently connected slot, if any
