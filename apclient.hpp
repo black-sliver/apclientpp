@@ -608,6 +608,13 @@ public:
         _receiveOwnLocations = receiveOwnLocations;
     }
 
+    /// Gets location sending/receiving mode:
+    /// \sa see set_receive_own_locations for details.
+    bool get_receive_own_locations() const
+    {
+        return _receiveOwnLocations;
+    }
+
     const std::set<int64_t> get_checked_locations() const
     {
         return _checkedLocations;
