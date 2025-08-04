@@ -11,6 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define _APCLIENT_HPP
 
 
+#define APCLIENTPP_VERSION_INITIALIZER {0, 6, 0}
+
+
 #if defined _WSWRAP_HPP && !defined WSWRAP_SEND_EXCEPTIONS
 #warning "Can't set exception behavior. wswrap already included"
 #elif !defined WSWRAP_SEND_EXCEPTIONS
@@ -571,7 +574,7 @@ public:
 
     void set_retrieved_handler(std::function<void(const std::map<std::string,json>&)> f)
     {
-        set_retrieved_handler([f](const std::map<std::string,json>& keys, const json& message) {
+        set_retrieved_handler([f](const std::map<std::string, json>& keys, const json&) {
             if (!f)
                 return;
 
@@ -714,6 +717,18 @@ public:
         return INVALID_NAME_ID;
     }
 
+    bool slot_concerns_self(int slot) const
+    {
+        if (slot == _slotnr)
+            return true;
+        auto it = _slotInfo.find(slot);
+        if (it != _slotInfo.end()) {
+            const auto& members = it->second.members;
+            return std::find(members.begin(), members.end(), _slotnr) != members.end();
+        }
+        return false;
+    }
+
     std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt = RenderFormat::TEXT)
     {
         // TODO: implement RenderFormat::HTML
@@ -727,7 +742,7 @@ public:
             if (fmt != RenderFormat::TEXT) color = node.color;
             if (node.type == "player_id") {
                 int id = std::stoi(node.text);
-                if (color.empty() && id == _slotnr) color = "magenta";
+                if (color.empty() && slot_concerns_self(id)) color = "magenta";
                 else if (color.empty()) color = "yellow";
                 text = get_player_alias(id);
             } else if (node.type == "item_id") {
@@ -884,7 +899,7 @@ public:
     }
 
     bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
-                     const std::list<std::string>& tags = {}, const Version& ver = {0, 4, 9})
+                     const std::list<std::string>& tags = {}, const Version& ver = APCLIENTPP_VERSION_INITIALIZER)
     {
         if (_state < State::SOCKET_CONNECTED)
             return false;
