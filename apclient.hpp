@@ -599,6 +599,22 @@ public:
         });
     }
 
+    /// Set location sending/receiving mode:
+    /// If receiveOwnLocations is set to true, missing and checked locations
+    /// won't update until the server acknowledges the LocationChecks and
+    /// on_location_checks will be run even for sent LocationChecks.
+    void set_receive_own_locations(bool receiveOwnLocations)
+    {
+        _receiveOwnLocations = receiveOwnLocations;
+    }
+
+    /// Gets location sending/receiving mode:
+    /// \sa see set_receive_own_locations for details.
+    bool get_receive_own_locations() const
+    {
+        return _receiveOwnLocations;
+    }
+
     const std::set<int64_t> get_checked_locations() const
     {
         return _checkedLocations;
@@ -801,9 +817,12 @@ public:
         } else {
             _checkQueue.insert(locations.begin(), locations.end());
         }
-        for (const auto& location: locations) {
-            _checkedLocations.insert(location);
-            _missingLocations.erase(location);
+        if (!_receiveOwnLocations) {
+            // for receiveOwnLocations, this will be done on the server response instead
+            for (const auto& location: locations) {
+                _checkedLocations.insert(location);
+                _missingLocations.erase(location);
+            }
         }
         return true;
     }
@@ -1773,6 +1792,7 @@ private:
     int _locationCount = 0;
     int _hintCostPercent = 0;
     int _hintPoints = 0;
+    bool _receiveOwnLocations = false;
     std::set<int64_t> _checkedLocations;
     std::set<int64_t> _missingLocations;
     APDataPackageStore* _dataPackageStore;
