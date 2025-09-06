@@ -10,12 +10,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef _DEFAULTDATAPACKAGESTORE_HPP
 #define _DEFAULTDATAPACKAGESTORE_HPP
 
-#include "apclient.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include <time.h>
+#include "apclient.hpp"
 
 #if defined WIN32 || defined _WIN32
 #include <shlobj.h>
@@ -38,8 +38,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #ifndef NO_STD_FILESYSTEM
 #define NO_STD_FILESYSTEM
 #endif
+#include <cerrno>
 #include <string>
-#include <errno.h>
 #endif
 
 class DefaultDataPackageStore : public APDataPackageStore
@@ -137,7 +137,7 @@ done:
             if (s == slash())
                 return slash();
             auto p = s.rfind(slash());
-            if (p == s.npos)
+            if (p == TString::npos)
                 return {};
             return s.substr(0, p);
         }
@@ -218,8 +218,8 @@ done:
         ut.modtime = ut.actime;
         _wutime64(filename.c_str(), &ut);
 #else
-        struct utimbuf ut;
-        ut.actime = time(NULL);
+        utimbuf ut{};
+        ut.actime = time(nullptr);
         ut.modtime = ut.actime;
         utime(filename.c_str(), &ut);
 #endif
@@ -252,16 +252,16 @@ done:
 #endif
         if (!fallbackPath.empty())
             return path(fallbackPath) / "cache";
-        return path("cache");
+        return {"cache"};
     }
 
 public:
-    DefaultDataPackageStore(const std::string fallbackPath = "")
+    explicit DefaultDataPackageStore(const std::string& fallbackPath = "")
         : _path(get_default_cache_dir(fallbackPath) / "datapackage")
     {
     }
 
-    virtual bool load(const std::string& game, const std::string& checksum, json& data) override
+    bool load(const std::string& game, const std::string& checksum, json& data) override
     {
         auto p = get_path(game, checksum);
         if (p.empty()) {
@@ -286,7 +286,7 @@ public:
         }
     }
 
-    virtual bool save(const std::string& game, const json& data) override
+    bool save(const std::string& game, const json& data) override
     {
 #ifndef NO_STD_FILESYSTEM
         using std::filesystem::create_directories;

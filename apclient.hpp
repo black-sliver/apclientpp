@@ -31,12 +31,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 //#define AP_PREFER_UNENCRYPTED // try unencrypted connection first, then encrypted
 
 
-#include <wswrap.hpp>
 #include <list>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <tuple>
+#include <utility>
+#include <wswrap.hpp>
 #if defined(_MSC_VER) && _MSC_VER < 1910 // older msvc doesn't like the has_include
 #define NO_OPTIONAL
 #else
@@ -57,9 +59,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <valijson/validator.hpp>
 #endif
 #include <chrono>
-#include <stdint.h>
-#include <inttypes.h>
-#include <stdio.h>
+#include <cinttypes>
+#include <cstdint>
+#include <cstdio>
 #include <limits>
 
 
@@ -90,12 +92,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  */
 class APDataPackageStore {
 protected:
-    typedef nlohmann::json json;
+    using json = nlohmann::json;
 
     APDataPackageStore() {}
 
 public:
-    virtual ~APDataPackageStore() {}
+    virtual ~APDataPackageStore() = default;
 
     virtual bool load(const std::string& game, const std::string& checksum, json& data) = 0;
     virtual bool save(const std::string& game, const json& data) = 0;
@@ -159,7 +161,7 @@ public:
         // fix up URI (add ws:// and default port if none is given)
         if (!uri.empty()) {
             auto p = uri.find("://");
-            if (p == uri.npos) {
+            if (p == std::string::npos) {
             #if WSWRAP_VERSION >= 10100 || defined __EMSCRIPTEN__
                 _tryWSS = true;
                 #ifdef AP_PREFER_UNENCRYPTED
@@ -176,18 +178,18 @@ public:
             } else {
                 _uri = uri;
             }
-            auto pColon = _uri.find(":", p + 3); // FIXME: this fails for IPv6 addresses
-            auto pSlash = _uri.find("/", p + 3);
-            if (pColon == _uri.npos || (pSlash != _uri.npos && pColon > pSlash)) {
+            const auto pColon = _uri.find(':', p + 3); // FIXME: this fails for IPv6 addresses
+            const auto pSlash = _uri.find('/', p + 3);
+            if (pColon == std::string::npos || (pSlash != std::string::npos && pColon > pSlash)) {
                 auto tmp = _uri.substr(0, pSlash) + ":38281";
-                if (pSlash != _uri.npos) tmp += _uri.substr(pSlash);
+                if (pSlash != std::string::npos) tmp += _uri.substr(pSlash);
                 _uri = tmp;
             }
         }
 
         if (!_dataPackageStore) {
         #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
-            _autoDataPackageStore.reset(new DefaultDataPackageStore());
+            _autoDataPackageStore = std::make_unique<DefaultDataPackageStore>();
             _dataPackageStore =_autoDataPackageStore.get();
         #else
             const char* msg = "dataPackageStore is required if compiled with AP_NO_DEFAULT_DATA_PACKAGE_STORE";
@@ -215,9 +217,7 @@ public:
         connect_socket();
     }
 
-    virtual ~APClient()
-    {
-    }
+    virtual ~APClient() = default;
 
     enum class State {
         DISCONNECTED,
@@ -299,7 +299,7 @@ public:
     struct NetworkSlot {
         std::string name;
         std::string game;
-        SlotType type;
+        SlotType type{};
         std::list<int> members;
     };
 
@@ -395,72 +395,72 @@ public:
         }
     };
 
-    void set_socket_connected_handler(std::function<void(void)> f)
+    void set_socket_connected_handler(std::function<void()> f)
     {
-        _hOnSocketConnected = f;
+        _hOnSocketConnected = std::move(f);
     }
 
     void set_socket_error_handler(std::function<void(const std::string&)> f)
     {
-        _hOnSocketError = f;
+        _hOnSocketError = std::move(f);
     }
 
-    void set_socket_disconnected_handler(std::function<void(void)> f)
+    void set_socket_disconnected_handler(std::function<void()> f)
     {
-        _hOnSocketDisconnected = f;
+        _hOnSocketDisconnected = std::move(f);
     }
 
     void set_slot_connected_handler(std::function<void(const json&)> f)
     {
-        _hOnSlotConnected = f;
+        _hOnSlotConnected = std::move(f);
     }
 
     void set_slot_refused_handler(std::function<void(const std::list<std::string>&)> f)
     {
-        _hOnSlotRefused = f;
+        _hOnSlotRefused = std::move(f);
     }
 
-    void set_slot_disconnected_handler(std::function<void(void)> f)
+    void set_slot_disconnected_handler(std::function<void()> f)
     {
-        _hOnSlotDisconnected = f;
+        _hOnSlotDisconnected = std::move(f);
     }
 
-    void set_room_info_handler(std::function<void(void)> f)
+    void set_room_info_handler(std::function<void()> f)
     {
-        _hOnRoomInfo = f;
+        _hOnRoomInfo = std::move(f);
     }
 
-    void set_room_update_handler(std::function<void(void)> f)
+    void set_room_update_handler(std::function<void()> f)
     {
-        _hOnRoomUpdate = f;
+        _hOnRoomUpdate = std::move(f);
     }
 
     void set_items_received_handler(std::function<void(const std::list<NetworkItem>&)> f)
     {
-        _hOnItemsReceived = f;
+        _hOnItemsReceived = std::move(f);
     }
 
     void set_location_info_handler(std::function<void(const std::list<NetworkItem>&)> f)
     {
-        _hOnLocationInfo = f;
+        _hOnLocationInfo = std::move(f);
     }
 
     void set_data_package_changed_handler(std::function<void(const json&)> f)
     {
-        _hOnDataPackageChanged = f;
+        _hOnDataPackageChanged = std::move(f);
     }
 
     void set_print_handler(std::function<void(const std::string&)> f)
     {
-        _hOnPrint = f;
+        _hOnPrint = std::move(f);
     }
 
     void set_print_json_handler(std::function<void(const json& command)> f)
     {
-        _hOnPrintJson = f;
+        _hOnPrintJson = std::move(f);
     }
 
-    void set_print_json_handler(std::function<void(const PrintJSONArgs&)> f)
+    void set_print_json_handler(const std::function<void(const PrintJSONArgs&)>& f)
     {
         set_print_json_handler([f](const json& command) {
             if (!f) return;
@@ -490,8 +490,8 @@ public:
 
             it = command.find("item");
             if (it != command.end()) {
-                item.item = it->value("item", (int64_t) 0);
-                item.location = it->value("location", (int64_t) 0);
+                item.item = it->value("item", static_cast<int64_t>(0));
+                item.location = it->value("location", static_cast<int64_t>(0));
                 item.player = it->value("player", 0);
                 item.flags = it->value("flags", 0U);
                 item.index = -1;
@@ -538,7 +538,7 @@ public:
         });
     }
 
-    void set_print_json_handler(std::function<void(const std::list<TextNode>&, const NetworkItem*, const int*)> f)
+    void set_print_json_handler(const std::function<void(const std::list<TextNode>&, const NetworkItem*, const int*)>& f)
     {
         set_print_json_handler([f](const PrintJSONArgs& args) {
             if (!f) return;
@@ -546,7 +546,7 @@ public:
         });
     }
 
-    void set_print_json_handler(std::function<void(const std::list<TextNode>&)> f)
+    void set_print_json_handler(const std::function<void(const std::list<TextNode>&)>& f)
     {
         set_print_json_handler([f](const json& command) {
             if (!f) return;
@@ -561,7 +561,7 @@ public:
         });
     }
 
-    void set_print_json_handler(std::function<void(const std::list<TextNode>&, const json& extra)> f)
+    void set_print_json_handler(const std::function<void(const std::list<TextNode>&, const json& extra)>& f)
     {
         set_print_json_handler([f](const json& command) {
             if (!f)
@@ -584,15 +584,15 @@ public:
 
     void set_bounced_handler(std::function<void(const json&)> f)
     {
-        _hOnBounced = f;
+        _hOnBounced = std::move(f);
     }
 
     void set_location_checked_handler(std::function<void(const std::list<int64_t>&)> f)
     {
-        _hOnLocationChecked = f;
+        _hOnLocationChecked = std::move(f);
     }
 
-    void set_retrieved_handler(std::function<void(const std::map<std::string,json>&)> f)
+    void set_retrieved_handler(const std::function<void(const std::map<std::string,json>&)>& f)
     {
         set_retrieved_handler([f](const std::map<std::string, json>& keys, const json&) {
             if (!f)
@@ -604,15 +604,15 @@ public:
 
     void set_retrieved_handler(std::function<void(const std::map<std::string,json>&, const json& message)> f)
     {
-        _hOnRetrieved = f;
+        _hOnRetrieved = std::move(f);
     }
 
     void set_set_reply_handler(std::function<void(const json& command)> f)
     {
-        _hOnSetReply = f;
+        _hOnSetReply = std::move(f);
     }
 
-    void set_set_reply_handler(std::function<void(const std::string&, const json&, const json&)> f) {
+    void set_set_reply_handler(const std::function<void(const std::string&, const json&, const json&)>& f) {
         set_set_reply_handler([f](const json& command) {
             if (!f) return;
             f(command["key"].get<std::string>(), command["value"], command["original_value"]);
@@ -635,12 +635,12 @@ public:
         return _receiveOwnLocations;
     }
 
-    const std::set<int64_t> get_checked_locations() const
+    std::set<int64_t> get_checked_locations() const
     {
         return _checkedLocations;
     }
 
-    const std::set<int64_t> get_missing_locations() const
+    std::set<int64_t> get_missing_locations() const
     {
         return _missingLocations;
     }
@@ -650,7 +650,7 @@ public:
         return _players;
     }
 
-    std::string get_player_alias(int slot)
+    std::string get_player_alias(const int slot) const
     {
         if (slot == 0)
             return "Server";
@@ -664,15 +664,15 @@ public:
         return "Unknown";
     }
 
-    const std::string& get_player_game(int player)
+    const std::string& get_player_game(const int player) const
     {
         static const std::string ARCHIPELAGO_STRING = "Archipelago";
-        static const std::string BLANK = "";
+        static const std::string BLANK;
 
         if (player == 0)
             return ARCHIPELAGO_STRING;
 
-        auto slotIt = _slotInfo.find(player);
+        const auto slotIt = _slotInfo.find(player);
         if (slotIt != _slotInfo.end())
             return slotIt->second.game;
 
@@ -680,21 +680,21 @@ public:
     }
 
     /// Get the currently played game name or an empty string
-    const std::string& get_game()
+    const std::string& get_game() const
     {
         return get_player_game(get_player_number());
     }
 
-    std::string get_location_name(int64_t code, const std::string& game)
+    std::string get_location_name(const int64_t code, const std::string& game) const
     {
         if (game.empty()) { // old code path ("global" ids)
-            auto it = _locations.find(code);
+            const auto it = _locations.find(code);
             if (it != _locations.end())
                 return it->second;
         } else {
-            auto locationsIt = _gameLocations.find(game);
+            const auto locationsIt = _gameLocations.find(game);
             if (locationsIt != _gameLocations.end()) {
-                auto it = locationsIt->second.find(code);
+                const auto it = locationsIt->second.find(code);
                 if (it != locationsIt->second.end()) {
                     return it->second;
                 }
@@ -719,16 +719,16 @@ public:
         return INVALID_NAME_ID;
     }
 
-    std::string get_item_name(int64_t code, const std::string& game)
+    std::string get_item_name(const int64_t code, const std::string& game) const
     {
         if (game.empty()) { // old code path ("global" ids)
-            auto it = _items.find(code);
+            const auto it = _items.find(code);
             if (it != _items.end())
                 return it->second;
         } else {
-            auto itemsIt = _gameItems.find(game);
+            const auto itemsIt = _gameItems.find(game);
             if (itemsIt != _gameItems.end()) {
-                auto it = itemsIt->second.find(code);
+                const auto it = itemsIt->second.find(code);
                 if (it != itemsIt->second.end()) {
                     return it->second;
                 }
@@ -753,11 +753,11 @@ public:
         return INVALID_NAME_ID;
     }
 
-    bool slot_concerns_self(int slot) const
+    bool slot_concerns_self(const int slot) const
     {
         if (slot == _slotnr)
             return true;
-        auto it = _slotInfo.find(slot);
+        const auto it = _slotInfo.find(slot);
         if (it != _slotInfo.end()) {
             const auto& members = it->second.members;
             return std::find(members.begin(), members.end(), _slotnr) != members.end();
@@ -765,7 +765,7 @@ public:
         return false;
     }
 
-    std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt = RenderFormat::TEXT)
+    std::string render_json(const std::list<TextNode>& msg, RenderFormat fmt = RenderFormat::TEXT) const
     {
         // TODO: implement RenderFormat::HTML
         if (fmt == RenderFormat::HTML)
@@ -823,7 +823,7 @@ public:
         return out;
     }
 
-    bool LocationChecks(std::list<int64_t> locations)
+    bool LocationChecks(const std::list<int64_t>& locations)
     {
         // returns true if checks were sent or queued
         if (_state == State::SLOT_CONNECTED) {
@@ -847,7 +847,7 @@ public:
         return true;
     }
 
-    bool LocationScouts(std::list<int64_t> locations, int create_as_hint = 0)
+    bool LocationScouts(const std::list<int64_t>& locations, int create_as_hint = 0)
     {
         // returns true if scouts were sent or queued
         if (_state == State::SLOT_CONNECTED) {
@@ -1028,7 +1028,7 @@ public:
         // prefer to fetch 2 games at once for better use of compression window
         // if it's an odd number, the last fetch should be 1 game
         size_t n = 0;
-        size_t count = include.size();
+        const size_t count = include.size();
         std::vector<std::string> games;
         for (const auto& game: include) {
             games.push_back(game);
@@ -1049,8 +1049,8 @@ public:
         return true;
     }
 
-    bool Bounce(const json& data, std::list<std::string> games = {},
-                std::list<int> slots = {}, std::list<std::string> tags = {})
+    bool Bounce(const json& data, const std::list<std::string>& games = {},
+                const std::list<int>& slots = {}, const std::list<std::string>& tags = {})
     {
         if (_state < State::ROOM_INFO)
             return false; // or SLOT_CONNECTED?
@@ -1375,7 +1375,7 @@ private:
                         playedGames.emplace("Archipelago");
                     } else if (command["datapackage_versions"].is_array()) {
                         // 0.1.x: get games from datapackage_versions
-                        for (auto itV: command["datapackage_versions"].items()) {
+                        for (const auto& itV: command["datapackage_versions"].items()) {
                             playedGames.emplace(itV.key());
                         }
                     } else {
@@ -1390,7 +1390,7 @@ private:
 
                     if (itVersions != command.end() && !playedGames.empty()) {
                         // pre 0.3.2: exclude games that exist but are not being played
-                        for (auto itV: command["datapackage_versions"].items()) {
+                        for (const auto& itV: command["datapackage_versions"].items()) {
                             if (!playedGames.count(itV.key())) {
                                 exclude.push_back(itV.key());
                             }
@@ -1466,8 +1466,8 @@ private:
                     _state = State::SLOT_CONNECTED;
                     _team = command["team"];
                     _slotnr = command["slot"];
-                    _hintPoints = command.value("hint_points", command["checked_locations"].size());
-                    _locationCount = command["missing_locations"].size() + command["checked_locations"].size();
+                    _hintPoints = command.value("hint_points", static_cast<int>(command["checked_locations"].size()));
+                    _locationCount = static_cast<int>(command["missing_locations"].size() + command["checked_locations"].size());
                     _players.clear();
                     for (auto& player: command["players"]) {
                         _players.push_back({
@@ -1489,7 +1489,7 @@ private:
                         LocationChecks(queuedChecks);
                     }
                     if (command["slot_info"].is_object()) {
-                        for (auto it: command["slot_info"].items()) {
+                        for (const auto& it: command["slot_info"].items()) {
                             NetworkSlot slot;
                             const auto& j = it.value();
                             j.at("name").get_to(slot.name);
@@ -1601,10 +1601,10 @@ private:
                     auto data = _dataPackage;
                     if (!data["games"].is_object())
                         data["games"] = json(json::value_t::object);
-                    for (auto gamepair: command["data"]["games"].items()) {
+                    for (const auto& gamePair: command["data"]["games"].items()) {
                         if (_dataPackageStore)
-                            _dataPackageStore->save(gamepair.key(), gamepair.value());
-                        data["games"][gamepair.key()] = gamepair.value();
+                            _dataPackageStore->save(gamePair.key(), gamePair.value());
+                        data["games"][gamePair.key()] = gamePair.value();
                     }
                     data["version"] = command["data"].value<int>("version", -1); // -1 for backwards compatibility
                     _dataPackageValid = false;
@@ -1676,7 +1676,7 @@ private:
         _state = State::SOCKET_CONNECTING;
 
         try {
-            _ws.reset(new WS(_uri,
+            _ws = std::make_unique<WS>(_uri,
                     [this]() { onopen(); },
                     [this]() { onclose(); },
                     [this](const std::string& s) { onmessage(s); },
@@ -1688,7 +1688,7 @@ private:
 #if WSWRAP_VERSION >= 10100
                     , _certStore
 #endif
-            ));
+            );
         } catch (const std::exception& ex) {
             _ws = nullptr;
             if (_tryWSS && _uri.rfind("ws://", 0) == 0) {
@@ -1703,7 +1703,7 @@ private:
         // NOTE: browsers have a very badly implemented connection rate limit
         // alternatively we could always wait for onclose() to get the actual
         // allowed rate once we are over it
-        unsigned long maxReconnectInterval = std::max(15000UL, _ws ? _ws->get_ok_connect_interval() : 0);
+        const unsigned long maxReconnectInterval = std::max(15000UL, _ws ? _ws->get_ok_connect_interval() : 0);
         if (_socketReconnectInterval > maxReconnectInterval)
             _socketReconnectInterval = maxReconnectInterval;
     }
@@ -1711,17 +1711,17 @@ private:
     void _set_data_package(const json& data)
     {
         _dataPackage = data;
-        for (auto gamepair: _dataPackage["games"].items()) {
-            const auto& gamedata = gamepair.value();
-            _dataPackage["games"][gamepair.key()] = gamedata;
-            auto& gameItems = _gameItems[gamepair.key()];
-            for (auto pair: gamedata["item_name_to_id"].items()) {
+        for (const auto& gamePair: _dataPackage["games"].items()) {
+            const auto& gameData = gamePair.value();
+            _dataPackage["games"][gamePair.key()] = gameData;
+            auto& gameItems = _gameItems[gamePair.key()];
+            for (const auto& pair: gameData["item_name_to_id"].items()) {
                 auto id = pair.value().get<int64_t>();
                 _items[id] = pair.key();
                 gameItems[id] = pair.key();
             }
-            auto& gameLocations = _gameLocations[gamepair.key()];
-            for (auto pair: gamedata["location_name_to_id"].items()) {
+            auto& gameLocations = _gameLocations[gamePair.key()];
+            for (const auto& pair: gameData["location_name_to_id"].items()) {
                 auto id = pair.value().get<int64_t>();
                 _locations[id] = pair.key();
                 gameLocations[id] = pair.key();
@@ -1729,7 +1729,7 @@ private:
         }
     }
 
-    std::string color2ansi(const std::string& color)
+    static std::string color2ansi(const std::string& color)
     {
         // convert color to ansi color command
         if (color == "red") return "\x1b[31m";
@@ -1746,7 +1746,7 @@ private:
         return "\x1b[0m";
     }
 
-    void deansify(std::string& text)
+    static void deansify(std::string& text)
     {
         // disable ansi commands in text by replacing ESC by space
         std::replace(text.begin(), text.end(), '\x1b', ' ');
@@ -1762,9 +1762,9 @@ private:
 #endif
         return static_cast<unsigned long>(GetTickCount());
 #else
-        timespec ts;
+        timespec ts{};
         clock_gettime(CLOCK_MONOTONIC, &ts);
-        unsigned long ms = static_cast<unsigned long>(
+        auto ms = static_cast<unsigned long>(
             static_cast<uint64_t>(ts.tv_sec) * 1000);
         ms += static_cast<unsigned long>(ts.tv_nsec / 1000000);
         return ms;
@@ -1797,7 +1797,7 @@ private:
     std::function<void(const std::map<std::string, json>&, const json&)> _hOnRetrieved = nullptr;
     std::function<void(const json&)> _hOnSetReply = nullptr;
 
-    unsigned long _lastSocketConnect;
+    unsigned long _lastSocketConnect{};
     unsigned long _socketReconnectInterval = 1500;
     bool _reconnectNow = false;
     std::set<int64_t> _checkQueue;
