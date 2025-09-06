@@ -176,3 +176,15 @@ Once `slot_connected` was received, a `socket_error` or `socket_disconnected` ca
 * Some versions of mingw may not define a compatible std::err
   * Commits from [this PR](https://github.com/zaphoyd/websocketpp/pull/479/files) can be cherry-picked in.
   * Forks of subprojects to be used directly as submodules are on the todo list.
+
+
+## Build Time Considerations
+
+apclientpp depends on some heavy header-only libraries.
+
+Consider doing one or more of the following to improve build times:
+* Include apclientpp in as few translation units (cpp files) as possible.
+* Make use of precompiled headers:
+  * If you include apclient.hpp directly from multiple cpp files, precompile it.
+  * If another header file includes apclient.hpp that gets used by multiple translation units, precompile that instead.
+* Disable valijson.
