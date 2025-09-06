@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 # NOTE: you currently need to add dependencies listed in the README.md to your target yourself.
+#       See test/ for a (somewhat incomplete) example.
 
 project("apclientpp" VERSION 0.6.3
         DESCRIPTION "A header-only c++ library to connect to Archipelago."
@@ -17,3 +18,6 @@ target_include_directories(
         apclientpp
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+enable_testing()
+add_subdirectory(test)
