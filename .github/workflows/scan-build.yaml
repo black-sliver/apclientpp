@@ -1,0 +1,81 @@
+name: scan-build
+
+on:
+  push:
+    paths:
+      - '.github/workflows/scan-build.yaml'
+      - '**.hpp'
+      - '**.cpp'
+      - '**/CMakeLists.txt'
+  pull_request:
+    paths:
+      - '.github/workflows/scan-build.yaml'
+      - '**.hpp'
+      - '**.cpp'
+      - '**/CMakeLists.txt'
+
+jobs:
+  scan-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            shell: bash
+            scan-build: scan-build-20
+          #- os: windows-latest
+          #  shell: msys2 {0}
+          #  scan-build: scan-build
+          # Giving up on msys2 support:
+          # Using cmake, it doesn't find OpenSSL
+          # Using mingw-w64-x86_64-cmake, we get linker errors (the command line looks odd)
+          # ^ https://github.com/msys2/setup-msys2/blob/main/examples/cmake.yml
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies (apt)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: |
+          sudo apt-get update -y -qq
+          sudo apt-get install coreutils build-essential libssl-dev
+      - name: Install dependencies (msys2)
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        uses: msys2/setup-msys2@v2
+        with:
+          release: false
+          update: false
+          install: >-
+            base-devel
+            coreutils
+            make
+            cmake
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-zlib
+            mingw-w64-x86_64-clang-analyzer
+      - name: Install newer Clang and scan-build command (ubuntu)
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x ./llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt install clang-tools-20
+      - name: scan-build
+        run: |
+          mkdir build
+          cd build/
+          ${{ matrix.scan-build }} --status-bugs -o scan-build-reports \
+            cmake ..
+          ${{ matrix.scan-build }} --status-bugs -o scan-build-reports \
+            cmake --build . -v
+      - name: Store report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-build-reports-${{ matrix.os }}
+          path: build/scan-build-reports
