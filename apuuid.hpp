@@ -17,8 +17,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * If calling srand() is a problem for the callee, you'll have to provide your own UUID generator.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
 #include <string>
 #include <memory>
 #include <fstream>
@@ -28,15 +28,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #else
-#include <stdlib.h>
-#include <time.h>
+#include <cstdlib>
+#include <ctime>
 #endif
 
 
 namespace AP {
     class UUID {
     public:
-        UUID(uint8_t bytes[16])
+        explicit UUID(const uint8_t bytes[16])
         {
             const char hex[] = "0123456789abcdef";
             _string.resize(32);
@@ -49,7 +49,7 @@ namespace AP {
             }
         }
 
-        virtual ~UUID() {}
+        virtual ~UUID() = default;
 
         const std::string& string() const
         {
@@ -63,7 +63,7 @@ namespace AP {
     class UUIDFactory {
     public:
         static UUIDFactory* instance();
-        virtual ~UUIDFactory() {}
+        virtual ~UUIDFactory() = default;
         void setFilename(const std::string& filename);
         UUID getPersistentUUID(const std::string& hostname_or_url);
 
@@ -72,7 +72,7 @@ namespace AP {
         uint8_t randByte() const;
         UUID generate() const;
         void generate(uint8_t bytes[8]) const;
-        uint8_t hash(const std::string& name) const;
+        static uint8_t hash(const std::string& name) ;
 
         std::string _filename;
         std::fstream _f;
@@ -121,7 +121,7 @@ namespace AP {
                 uint64_t dummy = 0;
                 uint8_t bytes[16];
                 _f.seekg(0);
-                for (uint8_t i=0; i<16; i++) {
+                for (unsigned char& byte : bytes) {
                     char c;
                     uint8_t b = 0;
                     for (uint8_t n=0; n<2; n++) {
@@ -134,7 +134,7 @@ namespace AP {
                         if (c >= 'A' && c <= 'F')
                             b |= (uint8_t)(c - 'A' + 0x0a);
                     }
-                    bytes[i] = b;
+                    byte = b;
                 }
                 _f.seekp(32);
                 _f.write((const char*)&state, sizeof(state));
@@ -145,7 +145,7 @@ namespace AP {
         }
         // 32 byte at start of file reserved for back compat
         // then each entry is 8 byte state + 8 byte reserved + 16 byte uuid
-        size_t offset = 32 + (size_t) hash(name) * 32;
+        std::streamoff offset = 32 + (std::streamoff) hash(name) * 32;
         _f.seekg(offset);
         uint64_t state;
         uint64_t dummy;
@@ -189,7 +189,7 @@ namespace AP {
         return UUID(bytes);
     }
 
-    uint8_t UUIDFactory::hash(const std::string& name) const
+    uint8_t UUIDFactory::hash(const std::string& name)
     {
         uint8_t res = 0;
         for (char c: name) {
@@ -216,7 +216,7 @@ namespace AP {
 #else
     UUIDFactory::UUIDFactory()
     {
-        srand ((unsigned int) time (NULL));
+        srand((unsigned int) time (nullptr));
     }
 
     uint8_t UUIDFactory::randByte() const
