@@ -115,6 +115,8 @@ Use
 * [gm-apclientpp](https://github.com/black-sliver/gm-apclientpp) \
   Game Maker wrapper for apclientpp \
   VS2015, msvc, Windows
+* [test](./test) \
+  CMake
 
 
 ## SSL Support
