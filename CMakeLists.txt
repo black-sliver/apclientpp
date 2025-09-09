@@ -9,6 +9,8 @@ project("apclientpp" VERSION 0.6.3
 
 include(GNUInstallDirs)
 
+option(APCLIENTPP_BUILD_TESTING "build and run apclientpp tests" ON)
+
 add_library(apclientpp INTERFACE
         apclient.hpp
         apuuid.hpp
@@ -19,5 +21,7 @@ target_include_directories(
         INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-enable_testing()
-add_subdirectory(test)
+if (APCLIENTPP_BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif()
