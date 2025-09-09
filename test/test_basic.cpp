@@ -68,7 +68,7 @@ public:
 private:
     Server server;
     uint16_t port;
-    const uint16_t maxPort;
+    uint16_t maxPort;
     bool running = false;
 
     void on_open(const websocketpp::connection_hdl& hdl)
