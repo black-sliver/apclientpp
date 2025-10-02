@@ -216,7 +216,8 @@ public:
         parser.populateSchema(JsonSchemaAdapter(_setReplySchemaJson), _commandSchemas["SetReply"]);
         #endif
 
-        connect_socket();
+        // Connect on first poll
+        _reconnectNow = true;
     }
 
     virtual ~APClient() = default;
@@ -1245,7 +1246,7 @@ public:
             _ws->poll();
         if (_state < State::SOCKET_CONNECTED) {
             auto t = now();
-            if (t - _lastSocketConnect > _socketReconnectInterval || _reconnectNow) {
+            if (_reconnectNow || static_cast<unsigned long>(t - _lastSocketConnect) > _socketReconnectInterval) {
                 if (_state != State::DISCONNECTED)
                     log("Connect timed out. Retrying.");
                 else
@@ -1799,7 +1800,7 @@ private:
     std::function<void(const std::map<std::string, json>&, const json&)> _hOnRetrieved = nullptr;
     std::function<void(const json&)> _hOnSetReply = nullptr;
 
-    unsigned long _lastSocketConnect{};
+    unsigned long _lastSocketConnect = 0;
     unsigned long _socketReconnectInterval = 1500;
     bool _reconnectNow = false;
     std::set<int64_t> _checkQueue;
