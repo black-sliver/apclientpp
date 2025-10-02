@@ -981,6 +981,8 @@ public:
 
     bool ConnectUpdate(bool send_items_handling, int items_handling, bool send_tags, const std::list<std::string>& tags)
     {
+        if (_state < State::SOCKET_CONNECTED)
+            return false;
         if (!send_items_handling && !send_tags)
             return false;
 
