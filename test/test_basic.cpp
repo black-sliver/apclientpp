@@ -78,7 +78,8 @@ private:
     "cmd": "RoomInfo",
     "seed_name": "seed_name",
     "time": 0,
-    "version": {"major": 0, "minor": 6, "build": 3, "class": "Version"}
+    "version": {"major": 0, "minor": 6, "build": 3, "class": "Version"},
+    "permissions": {"collect": 0, "release": 7, "remaining": 1}
 }]
 )"""";
         server.send(hdl, roomInfo, websocketpp::frame::opcode::text);
@@ -122,8 +123,17 @@ int main(int, char**)
         });
         for (int i = 0; i < 10000; ++i) {
             ap.poll();
-            if (connected && roomInfo)
+            if (connected && roomInfo) {
+                auto& perms = ap.get_permissions();
+                for (auto& kv : perms) {
+                    printf("  %s: %d\n", kv.first.c_str(), static_cast<int>(kv.second));
+                }
+                if (perms.at("release") == APClient::Permission::AUTO_ENABLED) {
+                    printf("GOOD NOW GO TO BED\n");
+                }
+
                 break;
+            }
             usleep(1);
         }
         printf("Stopping client...\n");

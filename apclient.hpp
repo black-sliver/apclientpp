@@ -247,6 +247,16 @@ public:
         FLAG_TRAP = 4,
     };
 
+    enum class Permission {
+        DISABLED = 0,   ///< Completely disables access
+        ENABLED = 1,    ///< Allows manual use
+        GOAL = 2,       ///< Allows manual use after goal completion
+        FORCED = 4,     ///< Forces usage
+
+        AUTO = FORCED | GOAL,   ///< Forces use after goal completion, only works for release and collect
+        AUTO_ENABLED = FORCED | GOAL | ENABLED, ///< Forces use after goal completion, allows manual use any time
+    };
+
     enum HintStatus {
         HINT_UNSPECIFIED = 0,  ///< The receiving player has not specified any status
         HINT_NO_PRIORITY = 10, ///< The receiving player has specified that the item is unneeded
@@ -1186,6 +1196,12 @@ public:
         return _hintCostPercent;
     }
 
+    /// Get the mapping of command permissions for the connected room.
+    const std::map<std::string, Permission>& get_permissions() const
+    {
+        return _command_permissions;
+    }
+
     /**
      * Checks if data package seems to be valid for the server/room.
      * If not, get_location_name() and get_item_name() will return "Unknown"
@@ -1342,6 +1358,7 @@ private:
                     _seed = command["seed_name"];
                     _hintCostPercent = command.value("hint_cost", 0);
                     _hasPassword = command.value("password", false);
+                    _command_permissions = command.value("permissions", std::map<std::string, Permission>{});
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
 
@@ -1802,6 +1819,7 @@ private:
     int _locationCount = 0;
     int _hintCostPercent = 0;
     int _hintPoints = 0;
+    std::map<std::string, Permission> _command_permissions;
     bool _receiveOwnLocations = false;
     std::set<int64_t> _checkedLocations;
     std::set<int64_t> _missingLocations;
