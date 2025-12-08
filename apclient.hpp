@@ -1755,12 +1755,18 @@ private:
     static unsigned long now()
     {
 #if defined WIN32 || defined _WIN32
-        return (unsigned long)GetTickCount();
+#if WINVER >= 0x0600 || _WIN32_WINNT >= 0x0600
+        if (sizeof(unsigned long) > 4) {
+            return static_cast<unsigned long>(GetTickCount64());
+        }
+#endif
+        return static_cast<unsigned long>(GetTickCount());
 #else
-        struct timespec ts;
+        timespec ts;
         clock_gettime(CLOCK_MONOTONIC, &ts);
-        unsigned long ms = (unsigned long)ts.tv_sec * 1000;
-        ms += (unsigned long)ts.tv_nsec / 1000000;
+        unsigned long ms = static_cast<unsigned long>(
+            static_cast<uint64_t>(ts.tv_sec) * 1000);
+        ms += static_cast<unsigned long>(ts.tv_nsec / 1000000);
         return ms;
 #endif
     }
