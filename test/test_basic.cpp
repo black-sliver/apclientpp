@@ -80,6 +80,9 @@ private:
     "time": 0,
     "version": {"major": 0, "minor": 6, "build": 3, "class": "Version"},
     "permissions": {"collect": 0, "release": 7, "remaining": 1}
+},{
+    "cmd": "RoomUpdate",
+    "permissions": {"collect": 7}
 }]
 )"""";
         server.send(hdl, roomInfo, websocketpp::frame::opcode::text);
@@ -103,7 +106,9 @@ int main(int, char**)
     bool error = false;
     bool connected = false;
     bool roomInfo = false;
+    bool roomUpdate = false;
     bool releaseMode = false;
+    bool collectMode = false;
     {
         const std::string uri = "ws://localhost:" + std::to_string(server.get_port());
 
@@ -122,9 +127,12 @@ int main(int, char**)
         ap.set_room_info_handler([&roomInfo]() {
             roomInfo = true;
         });
+        ap.set_room_update_handler([&roomUpdate]() {
+            roomUpdate = true;
+        });
         for (int i = 0; i < 10000; ++i) {
             ap.poll();
-            if (connected && roomInfo) {
+            if (connected && roomInfo && roomUpdate) {
                 auto& perms = ap.get_permissions();
                 for (const auto& kv : perms) {
                     printf("  %s: %d\n", kv.first.c_str(), static_cast<int>(kv.second));
@@ -132,7 +140,9 @@ int main(int, char**)
                 if (perms.at("release") == APClient::Permission::AUTO_ENABLED) {
                     releaseMode = true;
                 }
-
+                if (perms.at("collect") == APClient::Permission::AUTO_ENABLED) {
+                    collectMode = true;
+                }
                 break;
             }
             usleep(1);
@@ -153,8 +163,16 @@ int main(int, char**)
         fprintf(stderr, "FAIL: Did not receive room info\n");
         return 1;
     }
+    if (!roomUpdate) {
+        fprintf(stderr, "FAIL: Did not receive room update\n");
+        return 1;
+    }
     if (!releaseMode) {
         fprintf(stderr, "FAIL: Did not receive correct release mode\n");
+        return 1;
+    }
+    if (!collectMode) {
+        fprintf(stderr, "FAIL: Did not receive correct collect mode\n");
         return 1;
     }
     if (error) {

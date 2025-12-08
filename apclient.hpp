@@ -1204,7 +1204,7 @@ public:
     /// Get the mapping of command permissions for the connected room.
     const std::map<std::string, Permission>& get_permissions() const
     {
-        return _command_permissions;
+        return _commandPermissions;
     }
 
     /**
@@ -1363,7 +1363,7 @@ private:
                     _seed = command["seed_name"];
                     _hintCostPercent = command.value("hint_cost", 0);
                     _hasPassword = command.value("password", false);
-                    _command_permissions = command.value("permissions", std::map<std::string, Permission>{});
+                    _commandPermissions = command.value("permissions", std::map<std::string, Permission>{});
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
                     if (_hOnRoomInfo) _hOnRoomInfo();
 
@@ -1599,6 +1599,14 @@ private:
                             });
                         }
                     }
+
+                    auto itPermissions = command.find("permissions");
+                    if (itPermissions != command.end() && itPermissions->is_object()) {
+                        for (const auto &kv : itPermissions->items()) {
+                            _commandPermissions[kv.key()] = kv.value();
+                        }
+                    }
+
                     if (_hOnRoomUpdate)
                         _hOnRoomUpdate();
                 }
@@ -1830,7 +1838,7 @@ private:
     int _locationCount = 0;
     int _hintCostPercent = 0;
     int _hintPoints = 0;
-    std::map<std::string, Permission> _command_permissions;
+    std::map<std::string, Permission> _commandPermissions;
     bool _receiveOwnLocations = false;
     std::set<int64_t> _checkedLocations;
     std::set<int64_t> _missingLocations;
