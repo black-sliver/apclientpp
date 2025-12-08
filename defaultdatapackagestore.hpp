@@ -14,6 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <string>
 #include <nlohmann/json.hpp>
 #include "apclient.hpp"
 
@@ -39,7 +40,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define NO_STD_FILESYSTEM
 #endif
 #include <cerrno>
-#include <string>
+#include <utility>
 #endif
 
 class DefaultDataPackageStore : public APDataPackageStore
@@ -48,11 +49,11 @@ public:
 #if defined WIN32 || defined _WIN32
     typedef std::wstring TString;
     typedef wchar_t TCHAR;
-    static const wchar_t CSLASH = L'/';
+    static constexpr wchar_t CSLASH = L'/';
 #else
     typedef std::string TString;
     typedef char TCHAR;
-    static const char CSLASH = '/';
+    static constexpr char CSLASH = '/';
 #endif
 private:
 
@@ -67,8 +68,8 @@ private:
     public:
         path() = default;
 
-        path(const TString& s)
-            : s(s)
+        path(TString s)
+            : s(std::move(s))
         {
         }
 
@@ -166,7 +167,7 @@ done:
 
         static const TCHAR* slash()
         {
-            static const TCHAR val[] = {CSLASH, 0};
+            static constexpr TCHAR val[] = {CSLASH, 0};
             return val;
         }
     };
