@@ -31,6 +31,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 //#define AP_PREFER_UNENCRYPTED // try unencrypted connection first, then encrypted
 
 
+#include <chrono>
+#include <cinttypes>
+#include <cstdint>
+#include <cstdio>
+#include <limits>
 #include <list>
 #include <map>
 #include <memory>
@@ -39,6 +44,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <tuple>
 #include <utility>
 #include <wswrap.hpp>
+
+// check for optional
 #if defined(_MSC_VER) && _MSC_VER < 1910 // older msvc doesn't like the has_include
 #define NO_OPTIONAL
 #else
@@ -58,11 +65,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <valijson/schema_parser.hpp>
 #include <valijson/validator.hpp>
 #endif
-#include <chrono>
-#include <cinttypes>
-#include <cstdint>
-#include <cstdio>
-#include <limits>
 
 
 #ifndef WSWRAP_VERSION
