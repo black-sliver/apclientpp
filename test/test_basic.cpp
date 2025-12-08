@@ -103,6 +103,7 @@ int main(int, char**)
     bool error = false;
     bool connected = false;
     bool roomInfo = false;
+    bool releaseMode = false;
     {
         const std::string uri = "ws://localhost:" + std::to_string(server.get_port());
 
@@ -125,11 +126,11 @@ int main(int, char**)
             ap.poll();
             if (connected && roomInfo) {
                 auto& perms = ap.get_permissions();
-                for (auto& kv : perms) {
+                for (const auto& kv : perms) {
                     printf("  %s: %d\n", kv.first.c_str(), static_cast<int>(kv.second));
                 }
                 if (perms.at("release") == APClient::Permission::AUTO_ENABLED) {
-                    printf("GOOD NOW GO TO BED\n");
+                    releaseMode = true;
                 }
 
                 break;
@@ -150,6 +151,10 @@ int main(int, char**)
     }
     if (!roomInfo) {
         fprintf(stderr, "FAIL: Did not receive room info\n");
+        return 1;
+    }
+    if (!releaseMode) {
+        fprintf(stderr, "FAIL: Did not receive correct release mode\n");
         return 1;
     }
     if (error) {
