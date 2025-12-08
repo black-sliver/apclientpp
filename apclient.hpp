@@ -907,7 +907,7 @@ public:
                 {"player", target_player},
             }};
 
-            if (hint_status != INT_MIN) {
+            if (hint_status != static_cast<HintStatus>(INT_MIN)) {
                 packet[0]["status"] = hint_status;
             }
 
