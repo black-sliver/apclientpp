@@ -13,12 +13,12 @@ FetchContent_Declare(
 # Desktop-only, without submodule:
 #FetchContent_Declare(
 #        wswrap
-#        URL https://github.com/black-sliver/wswrap/archive/e71695c80e0338d0aa4f18e7e0f45b67681206be.zip)
+#        URL https://github.com/black-sliver/wswrap/archive/d0505e0ec53a26743f11051949a0dc66bcf44951.zip)
 # Complete, with submodule:
 FetchContent_Declare(
         wswrap
         GIT_REPOSITORY https://github.com/black-sliver/wswrap.git
-        GIT_TAG e71695c80e0338d0aa4f18e7e0f45b67681206be)
+        GIT_TAG d0505e0ec53a26743f11051949a0dc66bcf44951)
 
 FetchContent_MakeAvailable(asio json websocketpp wswrap)
 
