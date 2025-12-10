@@ -4,10 +4,12 @@
 #include <chrono>
 #include <cstdio>
 #include <thread>
-#include <websocketpp/server.hpp>
-#include <websocketpp/config/asio_no_tls.hpp>
 
 #define usleep(usec) std::this_thread::sleep_for(std::chrono::microseconds(usec))
+
+#ifndef EMSCRIPTEN // we can not run websocket server in wasm
+#include <websocketpp/server.hpp>
+#include <websocketpp/config/asio_no_tls.hpp>
 
 typedef websocketpp::server<websocketpp::config::asio> Server;
 
@@ -85,9 +87,11 @@ private:
         server.send(hdl, roomInfo, websocketpp::frame::opcode::text);
     }
 };
+#endif // ndef EMSCRIPTEN
 
 int main(int, char**)
 {
+#ifndef EMSCRIPTEN // we can not run websocket server in wasm
     printf("Starting server...\n");
     TestServer server{38281, 38291};
     std::thread serverThread(&TestServer::run, &server);
@@ -99,13 +103,17 @@ int main(int, char**)
     if (!server.is_listening())
         throw std::runtime_error("Timeout starting server");
     printf("Server listening on %d\n", static_cast<int>(server.get_port()));
+    const auto port = server.get_port();
+#else // !ndef EMSCRIPTEN
+    const uint16_t port = 38281;
+#endif // ndef EMSCRIPTEN
 
     bool error = false;
     bool connected = false;
     bool roomInfo = false;
     bool releaseMode = false;
     {
-        const std::string uri = "ws://localhost:" + std::to_string(server.get_port());
+        const std::string uri = "ws://localhost:" + std::to_string(port);
 
         printf("Starting client for %s...\n", uri.c_str());
         APClient ap{"", "", uri};
@@ -141,9 +149,11 @@ int main(int, char**)
         // FIXME: ~APClient can throw
     }
 
+#ifndef EMSCRIPTEN // we can not run websocket server in wasm
     printf("Stopping server...\n");
     server.stop();
     serverThread.join();
+#endif // ndef EMSCRIPTEN
 
     if (!connected) {
         fprintf(stderr, "FAIL: Could not connect socket\n");
