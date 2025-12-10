@@ -10,9 +10,16 @@ FetchContent_Declare(
 FetchContent_Declare(
         websocketpp
         URL https://github.com/zaphoyd/websocketpp/archive/4dfe1be74e684acca19ac1cf96cce0df9eac2a2d.zip)
+# Desktop-only, without submodule:
+#FetchContent_Declare(
+#        wswrap
+#        URL https://github.com/black-sliver/wswrap/archive/e71695c80e0338d0aa4f18e7e0f45b67681206be.zip)
+# Complete, with submodule:
 FetchContent_Declare(
         wswrap
-        URL https://github.com/black-sliver/wswrap/archive/e71695c80e0338d0aa4f18e7e0f45b67681206be.zip)
+        GIT_REPOSITORY https://github.com/black-sliver/wswrap.git
+        GIT_TAG e71695c80e0338d0aa4f18e7e0f45b67681206be)
+
 FetchContent_MakeAvailable(asio json websocketpp wswrap)
 
 add_executable(TestBasic test_basic.cpp)
@@ -64,6 +71,16 @@ set_target_properties(TestBasic PROPERTIES
         CXX_STANDARD_REQUIRED YES
         CXX_EXTENSIONS NO
 )
+
+if(EMSCRIPTEN)
+    message("Configuring TestBasic for emscripten")
+    # embind requires C++17
+    set_target_properties(TestBasic PROPERTIES
+            CXX_STANDARD 17
+            CXX_STANDARD_REQUIRED YES
+    )
+    target_link_options(TestBasic BEFORE PRIVATE "--bind")
+endif()
 
 # enable more warnings
 if(MSVC)

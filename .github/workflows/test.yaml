@@ -40,3 +40,22 @@ jobs:
           cmake -D CMAKE_BUILD_TYPE=Debug ..
           cmake --build .
           ctest . -C Debug
+
+  embuild:
+    # Just build with emscripten. There is no way to test the build yet.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021
+        with:
+          version: 4.0.21
+          actions-cache-folder: 'emsdk-cache'
+      - name: Verify emsdk
+        run: emcc -v
+      - name: build
+        run: |
+          mkdir build
+          cd build/
+          emcmake cmake ..
+          emmake make
