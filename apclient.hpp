@@ -695,11 +695,14 @@ public:
             if (it != _locations.end())
                 return it->second;
         } else {
-            const auto locationsIt = _gameLocations.find(game);
-            if (locationsIt != _gameLocations.end()) {
-                const auto it = locationsIt->second.find(code);
-                if (it != locationsIt->second.end()) {
-                    return it->second;
+            const static std::string archipelago = "Archipelago";
+            for (const auto& gameLookup : {game, archipelago}) {
+                const auto locationsIt = _gameLocations.find(gameLookup);
+                if (locationsIt != _gameLocations.end()) {
+                    const auto it = locationsIt->second.find(code);
+                    if (it != locationsIt->second.end()) {
+                        return it->second;
+                    }
                 }
             }
         }
@@ -729,11 +732,14 @@ public:
             if (it != _items.end())
                 return it->second;
         } else {
-            const auto itemsIt = _gameItems.find(game);
-            if (itemsIt != _gameItems.end()) {
-                const auto it = itemsIt->second.find(code);
-                if (it != itemsIt->second.end()) {
-                    return it->second;
+            const static std::string archipelago = "Archipelago";
+            for (const auto& gameLookup : {game, archipelago}) {
+                const auto itemsIt = _gameItems.find(gameLookup);
+                if (itemsIt != _gameItems.end()) {
+                    const auto it = itemsIt->second.find(code);
+                    if (it != itemsIt->second.end()) {
+                        return it->second;
+                    }
                 }
             }
         }
