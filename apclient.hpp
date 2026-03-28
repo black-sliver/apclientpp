@@ -983,6 +983,15 @@ public:
     {
         return ConnectUpdate((bool)items_handling, *items_handling, (bool)tags, *tags);
     }
+
+    optional<NetworkSlot> get_slot_info(const int slot) const
+    {
+        const auto it = _slotInfo.find(slot);
+        if (it != _slotInfo.end()) {
+            return it->second;
+        }
+        return {};
+    }
 #endif
 
     bool ConnectUpdate(bool send_items_handling, int items_handling, bool send_tags, const std::list<std::string>& tags)
