@@ -14,6 +14,8 @@ on:
       - '**.cpp'
       - '**/CMakeLists.txt'
 
+permissions: {}
+
 jobs:
   ctest:
     strategy:
@@ -27,7 +29,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Install dependencies (apt)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
@@ -45,7 +47,7 @@ jobs:
     # Just build with emscripten. There is no way to test the build yet.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Setup emsdk
         uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021
         with:
