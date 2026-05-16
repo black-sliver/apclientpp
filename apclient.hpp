@@ -1372,7 +1372,6 @@ private:
                     _hasPassword = command.value("password", false);
                     _commandPermissions = command.value("permissions", std::map<std::string, Permission>{});
                     if (_state < State::ROOM_INFO) _state = State::ROOM_INFO;
-                    if (_hOnRoomInfo) _hOnRoomInfo();
 
                     // check if cached data package is already valid
                     // if not, build a list to query
@@ -1462,8 +1461,14 @@ private:
 
                     if (!exclude.empty())
                         _set_data_package(_dataPackage);  // apply loaded strings
-                    if (!_dataPackageValid) GetDataPackage(include);
-                    else debug("Data package up to date");
+
+                    if (_hOnRoomInfo)
+                        _hOnRoomInfo();
+
+                    if (!_dataPackageValid)
+                        GetDataPackage(include);
+                    else
+                        debug("Data package up to date");
                 }
                 else if (cmd == "ConnectionRefused") {
                     if (_hOnSlotRefused) {
