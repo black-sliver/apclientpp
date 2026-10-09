@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 # NOTE: you currently need to add dependencies listed in the README.md to your target yourself.
 #       See test/ for a (somewhat incomplete) example.
 
-project("apclientpp" VERSION 0.6.4
+project("apclientpp" VERSION 0.6.6
         DESCRIPTION "A header-only c++ library to connect to Archipelago."
         HOMEPAGE_URL "https://github.com/black-sliver/apclientpp")
 
