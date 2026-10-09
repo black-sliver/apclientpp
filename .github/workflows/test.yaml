@@ -29,7 +29,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
       - name: Install dependencies (apt)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: |
@@ -47,11 +47,11 @@ jobs:
     # Just build with emscripten. There is no way to test the build yet.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.1
       - name: Setup emsdk
-        uses: mymindstorm/setup-emsdk@6ab9eb1bda2574c4ddb79809fc9247783eaf9021
+        uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984  # v16
         with:
-          version: 4.0.21
+          version: 5.0.7
           actions-cache-folder: 'emsdk-cache'
       - name: Verify emsdk
         run: emcc -v
