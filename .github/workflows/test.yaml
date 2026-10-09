@@ -28,6 +28,7 @@ jobs:
           # TODO: mingw, but see scan-build.yaml for why not. Contributions are welcome.
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Install dependencies (apt)
@@ -46,6 +47,7 @@ jobs:
   embuild:
     # Just build with emscripten. There is no way to test the build yet.
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Setup emsdk
