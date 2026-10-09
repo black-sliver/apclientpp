@@ -947,8 +947,9 @@ public:
         return false;
     }
 
-    bool ConnectSlot(const std::string& name, const std::string& password, int items_handling,
-                     const std::list<std::string>& tags = {}, const Version& ver = APCLIENTPP_VERSION_INITIALIZER)
+    bool ConnectSlot(const std::string& name, const std::string& password, const int items_handling,
+                     const std::list<std::string>& tags = {}, const Version& ver = APCLIENTPP_VERSION_INITIALIZER,
+                     const bool slot_data = true)
     {
         if (_state < State::SOCKET_CONNECTED)
             return false;
@@ -964,6 +965,7 @@ public:
             {"version", ver},
             {"items_handling", items_handling},
             {"tags", tags},
+            {"slot_data", slot_data},
         }};
 
         debug("> " + packet[0]["cmd"].get<std::string>() + ": " + packet.dump());
