@@ -137,8 +137,9 @@ public:
 #endif
 
     APClient(const std::string& uuid, const std::string& game, const std::string& uri = "localhost:38281",
-             const std::string& certStore="", APDataPackageStore* dataPackageStore = nullptr)
-        : _dataPackageStore(dataPackageStore)
+             const std::string& certStore="", APDataPackageStore* dataPackageStore = nullptr,
+             const bool autoGetDataPackage = true)
+        : _dataPackageStore(dataPackageStore), _autoGetDataPackage(autoGetDataPackage)
     {
         // check if certStore is supported and required
         #if WSWRAP_VERSION < 10100 && !defined __EMSCRIPTEN__
@@ -1467,9 +1468,9 @@ private:
                     if (_hOnRoomInfo)
                         _hOnRoomInfo();
 
-                    if (!_dataPackageValid)
+                    if (!_dataPackageValid && _autoGetDataPackage)
                         GetDataPackage(include);
-                    else
+                    else if (_dataPackageValid)
                         debug("Data package up to date");
                 }
                 else if (cmd == "ConnectionRefused") {
@@ -1857,6 +1858,7 @@ private:
     std::set<int64_t> _checkedLocations;
     std::set<int64_t> _missingLocations;
     APDataPackageStore* _dataPackageStore;
+    bool _autoGetDataPackage;
 #ifndef AP_NO_DEFAULT_DATA_PACKAGE_STORE
     std::unique_ptr<APDataPackageStore> _autoDataPackageStore;
 #endif
